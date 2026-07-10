@@ -6,7 +6,6 @@ Dashboard Module
 */
 
 const Dashboard = {
-
     init() {
         console.log("Dashboard Module Loaded");
         this.render();
@@ -31,7 +30,6 @@ const Dashboard = {
 
                 <div class="card">
                     <h3>System Status</h3>
-
                     <ul>
                         <li>Application: Online</li>
                         <li>AI Module: Ready</li>
@@ -60,9 +58,7 @@ const Dashboard = {
                             <option value="FOCUS">FOCUS</option>
                         </select>
 
-                        <button type="submit">
-                            Add Product
-                        </button>
+                        <button type="submit">Add Product</button>
                     </form>
                 </div>
 
@@ -77,14 +73,39 @@ const Dashboard = {
                                         <div>
                                             <strong>${product.title}</strong>
                                             <span>${product.pillar}</span>
+                                            <span>Status: ${product.status}</span>
+                                            <span>PLL Score: ${product.pllScore}</span>
+                                            <span>SEO Score: ${product.seoScore}</span>
+
+                                            ${
+                                                product.recommendations &&
+                                                product.recommendations.length
+                                                    ? `
+                                                        <ul>
+                                                            ${product.recommendations
+                                                                .map(item => `<li>${item}</li>`)
+                                                                .join("")}
+                                                        </ul>
+                                                    `
+                                                    : ""
+                                            }
                                         </div>
 
-                                        <button
-                                            class="removeProduct"
-                                            data-id="${product.id}"
-                                        >
-                                            Remove
-                                        </button>
+                                        <div>
+                                            <button
+                                                class="analyzeProduct"
+                                                data-id="${product.id}"
+                                            >
+                                                Analyze
+                                            </button>
+
+                                            <button
+                                                class="removeProduct"
+                                                data-id="${product.id}"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
                                     </div>
                                 `).join("")
                                 : "<p>No products added yet.</p>"
@@ -95,24 +116,37 @@ const Dashboard = {
             </div>
         `;
 
+        const productForm = document.getElementById("productForm");
+
+        productForm.addEventListener("submit", event => {
+            event.preventDefault();
+
+            const title =
+                document.getElementById("productTitle").value.trim();
+
+            const pillar =
+                document.getElementById("productPillar").value;
+
+            Products.add({
+                title,
+                pillar,
+                status: "Draft"
+            });
+
+            this.render();
+        });
+
         document
-            .getElementById("productForm")
-            .addEventListener("submit", event => {
-                event.preventDefault();
+            .querySelectorAll(".analyzeProduct")
+            .forEach(button => {
+                button.addEventListener("click", async () => {
+                    const product = Products.findById(
+                        Number(button.dataset.id)
+                    );
 
-                const title =
-                    document.getElementById("productTitle").value.trim();
-
-                const pillar =
-                    document.getElementById("productPillar").value;
-
-                Products.add({
-                    title,
-                    pillar,
-                    status: "Draft"
+                    await AI.analyzeProduct(product);
+                    this.render();
                 });
-
-                this.render();
             });
 
         document
@@ -128,34 +162,4 @@ const Dashboard = {
     refresh() {
         this.render();
     }
-
-};                            Shopify:
-                            ${Shopify.isConnected() ? "Connected" : "Not Connected"}
-                        </li>
-                        <li>
-                            Products Loaded:
-                            ${PLL.state.products.length}
-                        </li>
-                    </ul>
-
-                    <button id="refreshDashboard">
-                        Refresh Dashboard
-                    </button>
-                </div>
-
-            </div>
-        `;
-
-        document
-            .getElementById("refreshDashboard")
-            .addEventListener("click", () => {
-                this.refresh();
-            });
-    },
-
-    refresh() {
-        console.log("Dashboard Refreshed");
-        this.render();
-    }
-
 };
