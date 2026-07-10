@@ -7,31 +7,86 @@ Shopify Module
 
 const Shopify = {
 
+    connected: false,
+
     init() {
         console.log("Shopify Module Loaded");
+        this.loadConnectionStatus();
     },
 
-    async connect() {
-        console.log("Connecting to Shopify...");
+    loadConnectionStatus() {
+        this.connected =
+            localStorage.getItem("pll-shopify-connected") === "true";
+
+        return this.connected;
+    },
+
+    async connect(storeDomain) {
+        if (!storeDomain || typeof storeDomain !== "string") {
+            throw new Error("A valid Shopify store domain is required.");
+        }
+
+        console.log("Preparing Shopify connection:", storeDomain);
+
+        this.connected = false;
+
+        localStorage.setItem(
+            "pll-shopify-store",
+            storeDomain
+        );
+
+        localStorage.setItem(
+            "pll-shopify-connected",
+            "false"
+        );
 
         return {
             success: false,
-            message: "Shopify connection not configured."
+            connected: false,
+            message:
+                "Shopify API credentials have not been configured yet."
         };
+    },
+
+    disconnect() {
+        this.connected = false;
+
+        localStorage.removeItem("pll-shopify-store");
+        localStorage.setItem(
+            "pll-shopify-connected",
+            "false"
+        );
+
+        return {
+            success: true,
+            connected: false
+        };
+    },
+
+    isConnected() {
+        return this.connected;
     },
 
     async getProducts() {
-        console.log("Requesting Shopify Products...");
+        if (!this.connected) {
+            return [];
+        }
 
-        return [];
+        return PLL.state.products;
     },
 
     async updateProduct(product) {
-        console.log("Updating Shopify Product:", product);
+        if (!this.connected) {
+            return {
+                success: false,
+                message: "Shopify is not connected."
+            };
+        }
 
         return {
-            success: false
+            success: true,
+            product
         };
     }
 
-};
+};};
