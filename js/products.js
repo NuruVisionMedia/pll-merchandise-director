@@ -42,13 +42,27 @@ const Products = {
             pillar: product.pillar || "TRAIN",
             status: product.status || "Draft",
             pllScore: product.pllScore || 0,
-            seoScore: product.seoScore || 0
+            seoScore: product.seoScore || 0,
+            recommendations: product.recommendations || []
         };
 
         PLL.state.products.push(newProduct);
         this.save();
 
         return newProduct;
+    },
+
+    update(id, updates) {
+        const product = this.findById(id);
+
+        if (!product) {
+            return null;
+        }
+
+        Object.assign(product, updates);
+        this.save();
+
+        return product;
     },
 
     remove(id) {
@@ -64,4 +78,5 @@ const Products = {
             product => product.id === id
         );
     }
+
 };
