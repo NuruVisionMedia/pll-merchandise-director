@@ -19,10 +19,16 @@ const Research = {
             product: productName,
             supplier: "Pending",
             pillar: this.detectPillar(productName),
+
             demand: 75,
             competition: 50,
             profitMargin: 60,
             trendScore: this.calculateTrendScore(),
+
+            coachScore: this.calculateCoachScore(),
+            brandScore: this.calculateBrandScore(),
+            repeatPurchaseScore: this.calculateRepeatPurchaseScore(),
+
             pllScore: 0,
             recommendation: ""
         };
@@ -52,9 +58,22 @@ const Research = {
         ) return "FOCUS";
 
         return "TRAIN";
+
     },
 
     calculateTrendScore() {
+        return Math.floor(Math.random() * 21) + 80;
+    },
+
+    calculateCoachScore() {
+        return Math.floor(Math.random() * 16) + 85;
+    },
+
+    calculateBrandScore() {
+        return Math.floor(Math.random() * 21) + 80;
+    },
+
+    calculateRepeatPurchaseScore() {
         return Math.floor(Math.random() * 21) + 80;
     },
 
@@ -62,13 +81,19 @@ const Research = {
 
         return Math.round(
 
-            (report.demand * 0.30) +
+            (report.demand * 0.20) +
 
-            ((100 - report.competition) * 0.20) +
+            ((100 - report.competition) * 0.15) +
 
-            (report.profitMargin * 0.30) +
+            (report.profitMargin * 0.20) +
 
-            (report.trendScore * 0.20)
+            (report.trendScore * 0.15) +
+
+            (report.coachScore * 0.10) +
+
+            (report.brandScore * 0.10) +
+
+            (report.repeatPurchaseScore * 0.10)
 
         );
 
