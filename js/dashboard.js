@@ -8,60 +8,59 @@ Dashboard Module
 const Dashboard = {
 
     init() {
-
         console.log("Dashboard Module Loaded");
-
         this.render();
-
     },
 
     render() {
+        const app = document.getElementById("app");
 
-        const container = document.querySelector(".container");
+        if (!app) {
+            throw new Error("Application root not found.");
+        }
 
-        container.innerHTML = `
+        app.innerHTML = `
+            <div class="container">
 
-            <div class="card">
+                <div class="card">
+                    <h1>PLL Merchandise Director</h1>
+                    <p>AI Employee Dashboard</p>
+                </div>
 
-                <h1>PLL Merchandise Director</h1>
+                <div class="card">
+                    <h3>System Status</h3>
 
-                <p>AI Employee Dashboard</p>
+                    <ul>
+                        <li>Application: Online</li>
+                        <li>AI Module: Ready</li>
+                        <li>
+                            Shopify:
+                            ${Shopify.isConnected() ? "Connected" : "Not Connected"}
+                        </li>
+                        <li>
+                            Products Loaded:
+                            ${PLL.state.products.length}
+                        </li>
+                    </ul>
 
-                <hr>
-
-                <h3>System Status</h3>
-
-                <ul>
-                    <li>Application: ✅ Online</li>
-                    <li>AI Module: ✅ Ready</li>
-                    <li>Shopify: ⏳ Not Connected</li>
-                    <li>Products Loaded: ${PLL.state.products.length}</li>
-                </ul>
-
-                <button id="refreshDashboard">
-                    Refresh Dashboard
-                </button>
+                    <button id="refreshDashboard">
+                        Refresh Dashboard
+                    </button>
+                </div>
 
             </div>
-
         `;
 
         document
             .getElementById("refreshDashboard")
             .addEventListener("click", () => {
-
                 this.refresh();
-
             });
-
     },
 
     refresh() {
-
         console.log("Dashboard Refreshed");
-
         this.render();
-
     }
 
 };
