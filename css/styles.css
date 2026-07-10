@@ -125,3 +125,38 @@ button:hover{
         flex-direction:column;
     }
 }
+
+.result-box{
+    background:var(--card);
+    border-left:4px solid var(--primary);
+    border-radius:8px;
+    margin-top:16px;
+    padding:18px;
+}
+
+.result-box h4{
+    color:var(--primary);
+    margin:14px 0 8px;
+}
+
+.result-box h4:first-child{
+    margin-top:0;
+}
+
+.result-box strong{
+    color:var(--text);
+}
+
+.result-box p{
+    margin-top:8px;
+}
+
+.card > h3{
+    color:var(--primary);
+}
+
+input:focus,
+select:focus{
+    border-color:var(--primary);
+    outline:none;
+}
