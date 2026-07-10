@@ -6,7 +6,6 @@ Shopify Module
 */
 
 const Shopify = {
-
     connected: false,
 
     init() {
@@ -30,21 +29,13 @@ const Shopify = {
 
         this.connected = false;
 
-        localStorage.setItem(
-            "pll-shopify-store",
-            storeDomain
-        );
-
-        localStorage.setItem(
-            "pll-shopify-connected",
-            "false"
-        );
+        localStorage.setItem("pll-shopify-store", storeDomain);
+        localStorage.setItem("pll-shopify-connected", "false");
 
         return {
             success: false,
             connected: false,
-            message:
-                "Shopify API credentials have not been configured yet."
+            message: "Shopify API credentials have not been configured yet."
         };
     },
 
@@ -52,10 +43,7 @@ const Shopify = {
         this.connected = false;
 
         localStorage.removeItem("pll-shopify-store");
-        localStorage.setItem(
-            "pll-shopify-connected",
-            "false"
-        );
+        localStorage.setItem("pll-shopify-connected", "false");
 
         return {
             success: true,
@@ -88,5 +76,4 @@ const Shopify = {
             product
         };
     }
-
 };
