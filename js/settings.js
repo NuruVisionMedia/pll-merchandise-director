@@ -7,29 +7,52 @@ Settings Module
 
 const Settings = {
 
+    storageKey: "pll-settings",
+
+    defaults: {
+        company: "Prime Level Living",
+        aiModel: "Claude",
+        theme: "dark",
+        autoScoreProducts: true,
+        autoGenerateSEO: true,
+        autoGenerateCoachReview: true
+    },
+
     init() {
         console.log("Settings Module Loaded");
+        this.load();
     },
 
     load() {
-        const saved = localStorage.getItem("pll-settings");
+
+        const saved = localStorage.getItem(this.storageKey);
 
         if (saved) {
             PLL.state.settings = JSON.parse(saved);
+        } else {
+            PLL.state.settings = { ...this.defaults };
+            this.save();
         }
 
         return PLL.state.settings;
+
     },
 
-    save(settings) {
-        PLL.state.settings = settings;
+    save() {
 
         localStorage.setItem(
-            "pll-settings",
-            JSON.stringify(settings)
+            this.storageKey,
+            JSON.stringify(PLL.state.settings)
         );
 
-        console.log("Settings Saved");
+    },
+
+    reset() {
+
+        PLL.state.settings = { ...this.defaults };
+
+        this.save();
+
     }
 
 };
