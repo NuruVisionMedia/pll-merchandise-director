@@ -1,11 +1,12 @@
 /*
 ==========================================
-PLL MERCHANDISE DIRECTOR
+PLL AI OPERATIONS
 Dashboard Module
 ==========================================
 */
 
 const Dashboard = {
+
     init() {
         console.log("Dashboard Module Loaded");
         this.render();
@@ -18,148 +19,196 @@ const Dashboard = {
             throw new Error("Application root not found.");
         }
 
-        const products = Products.list();
-
         app.innerHTML = `
             <div class="container">
 
                 <div class="card">
-                    <h1>PLL Merchandise Director</h1>
-                    <p>AI Employee Dashboard</p>
+                    <h1>PLL AI Operations</h1>
+                    <p>Support Agents for the PLL Merchandise Director</p>
                 </div>
 
                 <div class="card">
-                    <h3>System Status</h3>
-                    <ul>
-                        <li>Application: Online</li>
-                        <li>AI Module: Ready</li>
-                        <li>
-                            Shopify:
-                            ${Shopify.isConnected() ? "Connected" : "Not Connected"}
-                        </li>
-                        <li>Products Loaded: ${products.length}</li>
-                    </ul>
-                </div>
+                    <h3>Product Research Agent</h3>
 
-                <div class="card">
-                    <h3>Add Product</h3>
-
-                    <form id="productForm">
+                    <form id="researchForm">
                         <input
-                            id="productTitle"
+                            id="researchProduct"
                             type="text"
-                            placeholder="Product title"
+                            placeholder="Enter product name"
                             required
                         >
 
-                        <select id="productPillar">
-                            <option value="TRAIN">TRAIN</option>
-                            <option value="FUEL">FUEL</option>
-                            <option value="FOCUS">FOCUS</option>
-                        </select>
-
-                        <button type="submit">Add Product</button>
+                        <button type="submit">
+                            Analyze Product
+                        </button>
                     </form>
+
+                    <div id="researchResult"></div>
                 </div>
 
                 <div class="card">
-                    <h3>Products</h3>
+                    <h3>Pricing Agent</h3>
 
-                    <div id="productList">
-                        ${
-                            products.length
-                                ? products.map(product => `
-                                    <div class="product-row">
-                                        <div>
-                                            <strong>${product.title}</strong>
-                                            <span>${product.pillar}</span>
-                                            <span>Status: ${product.status}</span>
-                                            <span>PLL Score: ${product.pllScore}</span>
-                                            <span>SEO Score: ${product.seoScore}</span>
+                    <form id="pricingForm">
+                        <input
+                            id="productCost"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            placeholder="Product cost"
+                            required
+                        >
 
-                                            ${
-                                                product.recommendations &&
-                                                product.recommendations.length
-                                                    ? `
-                                                        <ul>
-                                                            ${product.recommendations
-                                                                .map(item => `<li>${item}</li>`)
-                                                                .join("")}
-                                                        </ul>
-                                                    `
-                                                    : ""
-                                            }
-                                        </div>
+                        <input
+                            id="targetMargin"
+                            type="number"
+                            min="1"
+                            max="95"
+                            value="50"
+                            placeholder="Target margin"
+                            required
+                        >
 
-                                        <div>
-                                            <button
-                                                class="analyzeProduct"
-                                                data-id="${product.id}"
-                                            >
-                                                Analyze
-                                            </button>
+                        <button type="submit">
+                            Calculate Price
+                        </button>
+                    </form>
 
-                                            <button
-                                                class="removeProduct"
-                                                data-id="${product.id}"
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    </div>
-                                `).join("")
-                                : "<p>No products added yet.</p>"
-                        }
-                    </div>
+                    <div id="pricingResult"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Content Creator</h3>
+
+                    <form id="contentForm">
+                        <input
+                            id="contentProduct"
+                            type="text"
+                            placeholder="Enter product name"
+                            required
+                        >
+
+                        <button type="submit">
+                            Generate Content
+                        </button>
+                    </form>
+
+                    <div id="contentResult"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Social Media Agent</h3>
+
+                    <form id="socialForm">
+                        <input
+                            id="socialProduct"
+                            type="text"
+                            placeholder="Enter product name"
+                            required
+                        >
+
+                        <button type="submit">
+                            Generate Posts
+                        </button>
+                    </form>
+
+                    <div id="socialResult"></div>
                 </div>
 
             </div>
         `;
 
-        const productForm = document.getElementById("productForm");
-
-        productForm.addEventListener("submit", event => {
-            event.preventDefault();
-
-            const title =
-                document.getElementById("productTitle").value.trim();
-
-            const pillar =
-                document.getElementById("productPillar").value;
-
-            Products.add({
-                title,
-                pillar,
-                status: "Draft"
-            });
-
-            this.render();
-        });
-
-        document
-            .querySelectorAll(".analyzeProduct")
-            .forEach(button => {
-                button.addEventListener("click", async () => {
-                    const product = Products.findById(
-                        Number(button.dataset.id)
-                    );
-
-                    await AI.analyzeProduct(product);
-                    this.render();
-                });
-            });
-
-        document
-            .querySelectorAll(".removeProduct")
-            .forEach(button => {
-                button.addEventListener("click", () => {
-                    Products.remove(Number(button.dataset.id));
-                    this.render();
-                });
-            });
+        this.attachEvents();
     },
 
-    refresh() {
-        this.render();
+    attachEvents() {
+        document
+            .getElementById("researchForm")
+            .addEventListener("submit", event => {
+                event.preventDefault();
+
+                const product =
+                    document.getElementById("researchProduct").value.trim();
+
+                const report = Research.analyze(product);
+
+                document.getElementById("researchResult").innerHTML = `
+                    <div class="result-box">
+                        <strong>${report.product}</strong>
+                        <p>Pillar: ${report.pillar}</p>
+                        <p>PLL Score: ${report.pllScore}</p>
+                        <p>Recommendation: ${report.recommendation}</p>
+                    </div>
+                `;
+            });
+
+        document
+            .getElementById("pricingForm")
+            .addEventListener("submit", event => {
+                event.preventDefault();
+
+                const cost =
+                    Number(document.getElementById("productCost").value);
+
+                const margin =
+                    Number(document.getElementById("targetMargin").value);
+
+                const report = Pricing.calculate(cost, margin);
+
+                document.getElementById("pricingResult").innerHTML = `
+                    <div class="result-box">
+                        <p>Recommended Price: $${report.psychologicalPrice}</p>
+                        <p>Estimated Profit: $${report.profit}</p>
+                        <p>ROI: ${report.roi}%</p>
+                        <p>Suggested Discount: ${report.discount}%</p>
+                    </div>
+                `;
+            });
+
+        document
+            .getElementById("contentForm")
+            .addEventListener("submit", event => {
+                event.preventDefault();
+
+                const product =
+                    document.getElementById("contentProduct").value.trim();
+
+                const report = Content.generate(product);
+
+                document.getElementById("contentResult").innerHTML = `
+                    <div class="result-box">
+                        <h4>${report.headline}</h4>
+                        <p>${report.shortDescription}</p>
+                        <p>${report.longDescription}</p>
+                        <p><strong>SEO Title:</strong> ${report.seoTitle}</p>
+                        <p><strong>SEO Description:</strong> ${report.seoDescription}</p>
+                    </div>
+                `;
+            });
+
+        document
+            .getElementById("socialForm")
+            .addEventListener("submit", event => {
+                event.preventDefault();
+
+                const product =
+                    document.getElementById("socialProduct").value.trim();
+
+                const post = Social.generate(product);
+
+                document.getElementById("socialResult").innerHTML = `
+                    <div class="result-box">
+                        <h4>Instagram</h4>
+                        <p>${post.instagram.replace(/\n/g, "<br>")}</p>
+
+                        <h4>Facebook</h4>
+                        <p>${post.facebook.replace(/\n/g, "<br>")}</p>
+
+                        <h4>TikTok</h4>
+                        <p>${post.tiktok}</p>
+                    </div>
+                `;
+            });
     }
+
 };
