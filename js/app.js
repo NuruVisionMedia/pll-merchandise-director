@@ -1,49 +1,51 @@
 /*
 ==========================================
-PLL MERCHANDISE DIRECTOR
+PLL AI OPERATIONS
 Application Entry Point
-Version: 1.1
+Version: 2.0
 ==========================================
 */
 
 const PLL = {
-    appName: "PLL Merchandise Director",
-    version: "1.1.0",
+
+    appName: "PLL AI Operations",
+
+    version: "2.0.0",
 
     state: {
+
         currentPage: "dashboard",
-        selectedProduct: null,
+
         products: [],
-        collections: [],
-        tasks: [],
-        analytics: {},
+
         settings: {}
+
     },
 
     init() {
-        try {
-            console.log(`${this.appName} v${this.version} Started`);
 
-            Products.init();
-            Settings.init();
-            Shopify.init();
-            AI.init();
-            Dashboard.init();
-        } catch (error) {
-            console.error("Application startup failed:", error);
+        console.log(
+            `${this.appName} v${this.version} Started`
+        );
 
-            document.body.innerHTML = `
-                <div class="container">
-                    <div class="card">
-                        <h1>Application Error</h1>
-                        <p>${error.message}</p>
-                    </div>
-                </div>
-            `;
-        }
+        Products.init();
+        Settings.init();
+        Shopify.init();
+
+        AI.init();
+        Research.init();
+        Pricing.init();
+        Content.init();
+        Social.init();
+
+        Dashboard.init();
+
     }
+
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+
     PLL.init();
+
 });
