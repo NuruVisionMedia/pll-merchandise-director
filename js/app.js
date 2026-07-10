@@ -2,13 +2,13 @@
 ==========================================
 PLL MERCHANDISE DIRECTOR
 Application Entry Point
-Version: 1.0
+Version: 1.1
 ==========================================
 */
 
 const PLL = {
     appName: "PLL Merchandise Director",
-    version: "1.0.0",
+    version: "1.1.0",
 
     state: {
         currentPage: "dashboard",
@@ -21,13 +21,26 @@ const PLL = {
     },
 
     init() {
-        console.log(`${this.appName} v${this.version} Started`);
+        try {
+            console.log(`${this.appName} v${this.version} Started`);
 
-        Dashboard.init();
-        Products.init();
-        AI.init();
-        Shopify.init();
-        Settings.init();
+            Products.init();
+            Settings.init();
+            Shopify.init();
+            AI.init();
+            Dashboard.init();
+        } catch (error) {
+            console.error("Application startup failed:", error);
+
+            document.body.innerHTML = `
+                <div class="container">
+                    <div class="card">
+                        <h1>Application Error</h1>
+                        <p>${error.message}</p>
+                    </div>
+                </div>
+            `;
+        }
     }
 };
 
