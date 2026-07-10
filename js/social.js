@@ -1,6 +1,7 @@
 /*
 ==========================================
 PLL SOCIAL MEDIA AGENT
+Version 1.1
 ==========================================
 */
 
@@ -21,16 +22,42 @@ const Social = {
             product,
 
             facebook:
-                `Coach Marcus Pick 💪 ${product}\n\nUpgrade your TRAIN • FUEL • FOCUS journey.\n\n#PrimeLevelLiving`,
+`🔥 Coach Marcus Pick
+
+${product}
+
+Performance isn't accidental.
+It's intentional.
+
+#PrimeLevelLiving
+#CoachMarcus
+#TrainFuelFocus`,
 
             instagram:
-                `${product}\n\nCoach Approved.\n\n#PrimeLevelLiving #TrainFuelFocus #CoachMarcus`,
+`${product}
+
+Chosen by Coach Marcus to elevate your next level.
+
+#PrimeLevelLiving
+#CoachMarcus
+#TrainFuelFocus
+#PerformanceLifestyle`,
 
             x:
-                `${product} is Coach Marcus Approved. #PrimeLevelLiving`,
+`Coach Marcus recommends ${product}.
+
+#PrimeLevelLiving`,
 
             tiktok:
-                `POV: You finally found the product Coach Marcus recommends. 🔥`
+`Coach Marcus just approved this product.
+
+Would you add it to your gym?
+
+#PrimeLevelLiving`,
+
+            youtube:
+`Coach Marcus Product Review:
+${product}`
 
         };
 
