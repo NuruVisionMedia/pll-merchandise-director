@@ -1,13 +1,12 @@
 /*
 ==========================================
-PLL MERCHANDISE DIRECTOR HANDOFF QUEUE
+PLL MERCHANDISE DIRECTOR LOCAL HANDOFF QUEUE
 ==========================================
 */
 
 const Queue = {
 
     storageKey: "pll-md-handoff-queue",
-    endpointKey: "pll-md-endpoint",
 
     items: [],
 
@@ -53,13 +52,14 @@ const Queue = {
             trendScore: report.trendScore,
             coachScore: report.coachScore,
             brandScore: report.brandScore,
+            repeatPurchaseScore: report.repeatPurchaseScore,
             shippingScore: report.shippingScore,
             pllScore: report.pllScore,
             recommendation: report.recommendation,
-            status: "Pending Handoff",
-            sent: false,
-            createdAt: new Date().toISOString(),
-            sentAt: null
+            status: "Pending Merchandise Director Review",
+            approved: false,
+            addedToProducts: false,
+            createdAt: new Date().toISOString()
         };
 
         this.items.push(item);
@@ -68,72 +68,60 @@ const Queue = {
         return item;
     },
 
-    setEndpoint(url) {
-        localStorage.setItem(this.endpointKey, url.trim());
-    },
-
-    getEndpoint() {
-        return localStorage.getItem(this.endpointKey) || "";
-    },
-
-    async send(id) {
+    approve(id) {
         const item = this.find(id);
-        const endpoint = this.getEndpoint();
 
         if (!item) {
-            throw new Error("Queue item not found.");
+            return null;
         }
 
-        if (!endpoint) {
-            return {
-                success: false,
-                message: "Merchandise Director endpoint is not configured."
-            };
-        }
-
-        const response = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(item)
-        });
-
-        if (!response.ok) {
-            throw new Error(
-                `Handoff failed with status ${response.status}.`
-            );
-        }
-
-        item.sent = true;
-        item.status = "Sent to Merchandise Director";
-        item.sentAt = new Date().toISOString();
+        item.approved = true;
+        item.status = "Approved by Merchandise Director";
 
         this.save();
 
-        return {
-            success: true,
-            item
-        };
+        return item;
     },
 
-    async sendAllApproved() {
-        const pendingItems = this.items.filter(
-            item =>
-                !item.sent &&
-                (
-                    item.recommendation === "APPROVE" ||
-                    item.recommendation === "STRONG CANDIDATE"
-                )
-        );
+    reject(id) {
+        const item = this.find(id);
 
-        const results = [];
-
-        for (const item of pendingItems) {
-            results.push(await this.send(item.id));
+        if (!item) {
+            return null;
         }
 
-        return results;
+        item.approved = false;
+        item.status = "Rejected by Merchandise Director";
+
+        this.save();
+
+        return item;
+    },
+
+    addToProducts(id) {
+        const item = this.find(id);
+
+        if (!item || !item.approved || item.addedToProducts) {
+            return null;
+        }
+
+        const product = Products.add({
+            title: item.product,
+            pillar: item.pillar,
+            status: "Draft",
+            pllScore: item.pllScore,
+            seoScore: 0,
+            recommendations: [
+                `Research recommendation: ${item.recommendation}`
+            ]
+        });
+
+        item.addedToProducts = true;
+        item.status = "Added to Merchandise Director Products";
+
+        this.save();
+
+        return product;
     },
 
     find(id) {
