@@ -1,7 +1,7 @@
 /*
 ==========================================
 PLL SHOPIFY PRODUCTS API
-Reads products securely from Shopify
+Securely retrieves products from Shopify
 ==========================================
 */
 
@@ -15,13 +15,19 @@ export default async function handler(request, response) {
 
     const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
     const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+    const apiVersion =
+        process.env.SHOPIFY_API_VERSION || "2026-07";
 
     if (!storeDomain || !accessToken) {
         return response.status(500).json({
             success: false,
-            message: "Shopify credentials are not configured."
+            message: "Shopify credentials are not configured in Vercel."
         });
     }
+
+    const normalizedDomain = storeDomain
+        .replace(/^https?:\/\//, "")
+        .replace(/\/$/, "");
 
     const query = `
         query GetProducts {
@@ -34,6 +40,7 @@ export default async function handler(request, response) {
                     vendor
                     productType
                     descriptionHtml
+                    totalInventory
                     featuredMedia {
                         preview {
                             image {
@@ -49,7 +56,7 @@ export default async function handler(request, response) {
 
     try {
         const shopifyResponse = await fetch(
-            `https://${storeDomain}/admin/api/2026-07/graphql.json`,
+            `https://${normalizedDomain}/admin/api/${apiVersion}/graphql.json`,
             {
                 method: "POST",
                 headers: {
@@ -65,7 +72,7 @@ export default async function handler(request, response) {
         if (!shopifyResponse.ok || data.errors) {
             return response.status(502).json({
                 success: false,
-                message: "Shopify product request failed.",
+                message: "Shopify product retrieval failed.",
                 errors: data.errors || data
             });
         }
