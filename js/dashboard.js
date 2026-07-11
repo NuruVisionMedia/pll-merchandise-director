@@ -9,6 +9,11 @@ const Dashboard = {
 
     init() {
         console.log("Dashboard Module Loaded");
+
+        if (typeof Queue !== "undefined") {
+            Queue.init();
+        }
+
         this.render();
     },
 
@@ -18,6 +23,9 @@ const Dashboard = {
         if (!app) {
             throw new Error("Application root not found.");
         }
+
+        const queueItems =
+            typeof Queue !== "undefined" ? Queue.list() : [];
 
         app.innerHTML = `
             <div class="container">
@@ -115,6 +123,40 @@ const Dashboard = {
                     <div id="socialResult"></div>
                 </div>
 
+                <div class="card">
+                    <h3>Merchandise Director Queue</h3>
+
+                    <p>
+                        Products approved by the Product Research Agent
+                        appear here.
+                    </p>
+
+                    <div id="queueList">
+                        ${
+                            queueItems.length
+                                ? queueItems.map(item => `
+                                    <div class="product-row">
+                                        <div>
+                                            <strong>${item.product}</strong>
+                                            <span>Pillar: ${item.pillar}</span>
+                                            <span>PLL Score: ${item.pllScore}</span>
+                                            <span>${item.recommendation}</span>
+                                            <span>${item.status}</span>
+                                        </div>
+
+                                        <button
+                                            class="removeQueueItem"
+                                            data-id="${item.id}"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                `).join("")
+                                : "<p>No products are waiting for review.</p>"
+                        }
+                    </div>
+                </div>
+
             </div>
         `;
 
@@ -122,92 +164,194 @@ const Dashboard = {
     },
 
     attachEvents() {
+        const researchForm =
+            document.getElementById("researchForm");
+
+        researchForm.addEventListener("submit", event => {
+            event.preventDefault();
+
+            const product =
+                document
+                    .getElementById("researchProduct")
+                    .value
+                    .trim();
+
+            const report = Research.analyze(product);
+
+            let queueMessage =
+                "Not added to Merchandise Director Queue.";
+
+            if (
+                report.recommendation === "APPROVE" ||
+                report.recommendation === "STRONG CANDIDATE"
+            ) {
+                Queue.add(report);
+
+                queueMessage =
+                    "Added to Merchandise Director Queue.";
+            }
+
+            document.getElementById("researchResult").innerHTML = `
+                <div class="result-box">
+                    <strong>${report.product}</strong>
+                    <p>Pillar: ${report.pillar}</p>
+                    <p>Demand: ${report.demand}</p>
+                    <p>Competition: ${report.competition}</p>
+                    <p>Profit Margin: ${report.profitMargin}%</p>
+                    <p>Trend Score: ${report.trendScore}</p>
+                    <p>Coach Score: ${report.coachScore}</p>
+                    <p>Brand Score: ${report.brandScore}</p>
+                    <p>Shipping Score: ${report.shippingScore}</p>
+                    <p>PLL Score: ${report.pllScore}</p>
+                    <p>
+                        Recommendation:
+                        <strong>${report.recommendation}</strong>
+                    </p>
+                    <p>${queueMessage}</p>
+                    <p>Queue Size: ${Queue.list().length}</p>
+                </div>
+            `;
+
+            setTimeout(() => {
+                this.render();
+            }, 1200);
+        });
+
+        const pricingForm =
+            document.getElementById("pricingForm");
+
+        pricingForm.addEventListener("submit", event => {
+            event.preventDefault();
+
+            const cost =
+                Number(
+                    document.getElementById("productCost").value
+                );
+
+            const margin =
+                Number(
+                    document.getElementById("targetMargin").value
+                );
+
+            const report =
+                Pricing.calculate(cost, margin);
+
+            document.getElementById("pricingResult").innerHTML = `
+                <div class="result-box">
+                    <p>
+                        Recommended Price:
+                        $${report.psychologicalPrice}
+                    </p>
+                    <p>
+                        Estimated Profit:
+                        $${report.profit}
+                    </p>
+                    <p>ROI: ${report.roi}%</p>
+                    <p>
+                        Suggested Discount:
+                        ${report.discount}%
+                    </p>
+                </div>
+            `;
+        });
+
+        const contentForm =
+            document.getElementById("contentForm");
+
+        contentForm.addEventListener("submit", event => {
+            event.preventDefault();
+
+            const product =
+                document
+                    .getElementById("contentProduct")
+                    .value
+                    .trim();
+
+            const report =
+                Content.generate(product);
+
+            document.getElementById("contentResult").innerHTML = `
+                <div class="result-box">
+                    <h4>${report.headline}</h4>
+                    <p>${report.shortDescription}</p>
+                    <p>${report.longDescription}</p>
+
+                    <h4>Benefits</h4>
+
+                    <ul>
+                        ${report.bullets
+                            .map(item => `<li>${item}</li>`)
+                            .join("")}
+                    </ul>
+
+                    <p>
+                        <strong>Call to Action:</strong>
+                        ${report.callToAction}
+                    </p>
+
+                    <p>
+                        <strong>SEO Title:</strong>
+                        ${report.seoTitle}
+                    </p>
+
+                    <p>
+                        <strong>SEO Description:</strong>
+                        ${report.seoDescription}
+                    </p>
+
+                    <p>
+                        <strong>Hashtags:</strong>
+                        ${report.hashtags.join(" ")}
+                    </p>
+                </div>
+            `;
+        });
+
+        const socialForm =
+            document.getElementById("socialForm");
+
+        socialForm.addEventListener("submit", event => {
+            event.preventDefault();
+
+            const product =
+                document
+                    .getElementById("socialProduct")
+                    .value
+                    .trim();
+
+            const post =
+                Social.generate(product);
+
+            document.getElementById("socialResult").innerHTML = `
+                <div class="result-box">
+                    <h4>Instagram</h4>
+                    <p>${post.instagram.replace(/\n/g, "<br>")}</p>
+
+                    <h4>Facebook</h4>
+                    <p>${post.facebook.replace(/\n/g, "<br>")}</p>
+
+                    <h4>X</h4>
+                    <p>${post.x.replace(/\n/g, "<br>")}</p>
+
+                    <h4>TikTok</h4>
+                    <p>${post.tiktok.replace(/\n/g, "<br>")}</p>
+
+                    <h4>YouTube</h4>
+                    <p>${post.youtube.replace(/\n/g, "<br>")}</p>
+                </div>
+            `;
+        });
+
         document
-            .getElementById("researchForm")
-            .addEventListener("submit", event => {
-                event.preventDefault();
+            .querySelectorAll(".removeQueueItem")
+            .forEach(button => {
+                button.addEventListener("click", () => {
+                    Queue.remove(
+                        Number(button.dataset.id)
+                    );
 
-                const product =
-                    document.getElementById("researchProduct").value.trim();
-
-                const report = Research.analyze(product);
-
-                document.getElementById("researchResult").innerHTML = `
-                    <div class="result-box">
-                        <strong>${report.product}</strong>
-                        <p>Pillar: ${report.pillar}</p>
-                        <p>PLL Score: ${report.pllScore}</p>
-                        <p>Recommendation: ${report.recommendation}</p>
-                    </div>
-                `;
-            });
-
-        document
-            .getElementById("pricingForm")
-            .addEventListener("submit", event => {
-                event.preventDefault();
-
-                const cost =
-                    Number(document.getElementById("productCost").value);
-
-                const margin =
-                    Number(document.getElementById("targetMargin").value);
-
-                const report = Pricing.calculate(cost, margin);
-
-                document.getElementById("pricingResult").innerHTML = `
-                    <div class="result-box">
-                        <p>Recommended Price: $${report.psychologicalPrice}</p>
-                        <p>Estimated Profit: $${report.profit}</p>
-                        <p>ROI: ${report.roi}%</p>
-                        <p>Suggested Discount: ${report.discount}%</p>
-                    </div>
-                `;
-            });
-
-        document
-            .getElementById("contentForm")
-            .addEventListener("submit", event => {
-                event.preventDefault();
-
-                const product =
-                    document.getElementById("contentProduct").value.trim();
-
-                const report = Content.generate(product);
-
-                document.getElementById("contentResult").innerHTML = `
-                    <div class="result-box">
-                        <h4>${report.headline}</h4>
-                        <p>${report.shortDescription}</p>
-                        <p>${report.longDescription}</p>
-                        <p><strong>SEO Title:</strong> ${report.seoTitle}</p>
-                        <p><strong>SEO Description:</strong> ${report.seoDescription}</p>
-                    </div>
-                `;
-            });
-
-        document
-            .getElementById("socialForm")
-            .addEventListener("submit", event => {
-                event.preventDefault();
-
-                const product =
-                    document.getElementById("socialProduct").value.trim();
-
-                const post = Social.generate(product);
-
-                document.getElementById("socialResult").innerHTML = `
-                    <div class="result-box">
-                        <h4>Instagram</h4>
-                        <p>${post.instagram.replace(/\n/g, "<br>")}</p>
-
-                        <h4>Facebook</h4>
-                        <p>${post.facebook.replace(/\n/g, "<br>")}</p>
-
-                        <h4>TikTok</h4>
-                        <p>${post.tiktok}</p>
-                    </div>
-                `;
+                    this.render();
+                });
             });
     }
 
