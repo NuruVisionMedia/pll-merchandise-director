@@ -8,12 +8,7 @@ Dashboard Module
 const Dashboard = {
 
     init() {
-        console.log("Dashboard Module Loaded");
-
-        if (typeof Queue !== "undefined") {
-            Queue.init();
-        }
-
+        Queue.init();
         this.render();
     },
 
@@ -24,8 +19,7 @@ const Dashboard = {
             throw new Error("Application root not found.");
         }
 
-        const queueItems =
-            typeof Queue !== "undefined" ? Queue.list() : [];
+        const queueItems = Queue.list();
 
         app.innerHTML = `
             <div class="container">
@@ -126,11 +120,6 @@ const Dashboard = {
                 <div class="card">
                     <h3>Merchandise Director Queue</h3>
 
-                    <p>
-                        Products approved by the Product Research Agent
-                        appear here.
-                    </p>
-
                     <div id="queueList">
                         ${
                             queueItems.length
@@ -140,16 +129,57 @@ const Dashboard = {
                                             <strong>${item.product}</strong>
                                             <span>Pillar: ${item.pillar}</span>
                                             <span>PLL Score: ${item.pllScore}</span>
-                                            <span>${item.recommendation}</span>
-                                            <span>${item.status}</span>
+                                            <span>
+                                                Recommendation:
+                                                ${item.recommendation}
+                                            </span>
+                                            <span>Status: ${item.status}</span>
                                         </div>
 
-                                        <button
-                                            class="removeQueueItem"
-                                            data-id="${item.id}"
-                                        >
-                                            Remove
-                                        </button>
+                                        <div class="queue-actions">
+                                            ${
+                                                !item.approved &&
+                                                item.status !==
+                                                    "Rejected by Merchandise Director"
+                                                    ? `
+                                                        <button
+                                                            class="approveQueueItem"
+                                                            data-id="${item.id}"
+                                                        >
+                                                            Approve
+                                                        </button>
+
+                                                        <button
+                                                            class="rejectQueueItem"
+                                                            data-id="${item.id}"
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    `
+                                                    : ""
+                                            }
+
+                                            ${
+                                                item.approved &&
+                                                !item.addedToProducts
+                                                    ? `
+                                                        <button
+                                                            class="addQueueProduct"
+                                                            data-id="${item.id}"
+                                                        >
+                                                            Add to Products
+                                                        </button>
+                                                    `
+                                                    : ""
+                                            }
+
+                                            <button
+                                                class="removeQueueItem"
+                                                data-id="${item.id}"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
                                     </div>
                                 `).join("")
                                 : "<p>No products are waiting for review.</p>"
@@ -164,192 +194,195 @@ const Dashboard = {
     },
 
     attachEvents() {
-        const researchForm =
-            document.getElementById("researchForm");
+        document
+            .getElementById("researchForm")
+            .addEventListener("submit", event => {
+                event.preventDefault();
 
-        researchForm.addEventListener("submit", event => {
-            event.preventDefault();
-
-            const product =
-                document
+                const product = document
                     .getElementById("researchProduct")
                     .value
                     .trim();
 
-            const report = Research.analyze(product);
+                const report = Research.analyze(product);
 
-            let queueMessage =
-                "Not added to Merchandise Director Queue.";
+                let queueMessage =
+                    "Product requires additional research.";
 
-            if (
-                report.recommendation === "APPROVE" ||
-                report.recommendation === "STRONG CANDIDATE"
-            ) {
-                Queue.add(report);
+                if (
+                    report.recommendation === "APPROVE" ||
+                    report.recommendation === "STRONG CANDIDATE"
+                ) {
+                    Queue.add(report);
 
-                queueMessage =
-                    "Added to Merchandise Director Queue.";
-            }
+                    queueMessage =
+                        "Automatically sent to the Merchandise Director queue.";
+                }
 
-            document.getElementById("researchResult").innerHTML = `
-                <div class="result-box">
-                    <strong>${report.product}</strong>
-                    <p>Pillar: ${report.pillar}</p>
-                    <p>Demand: ${report.demand}</p>
-                    <p>Competition: ${report.competition}</p>
-                    <p>Profit Margin: ${report.profitMargin}%</p>
-                    <p>Trend Score: ${report.trendScore}</p>
-                    <p>Coach Score: ${report.coachScore}</p>
-                    <p>Brand Score: ${report.brandScore}</p>
-                    <p>Shipping Score: ${report.shippingScore}</p>
-                    <p>PLL Score: ${report.pllScore}</p>
-                    <p>
-                        Recommendation:
-                        <strong>${report.recommendation}</strong>
-                    </p>
-                    <p>${queueMessage}</p>
-                    <p>Queue Size: ${Queue.list().length}</p>
-                </div>
-            `;
+                document.getElementById("researchResult").innerHTML = `
+                    <div class="result-box">
+                        <strong>${report.product}</strong>
+                        <p>Pillar: ${report.pillar}</p>
+                        <p>Demand: ${report.demand}</p>
+                        <p>Competition: ${report.competition}</p>
+                        <p>Profit Margin: ${report.profitMargin}%</p>
+                        <p>Trend Score: ${report.trendScore}</p>
+                        <p>Coach Score: ${report.coachScore}</p>
+                        <p>Brand Score: ${report.brandScore}</p>
+                        <p>Shipping Score: ${report.shippingScore}</p>
+                        <p>PLL Score: ${report.pllScore}</p>
+                        <p>
+                            Recommendation:
+                            <strong>${report.recommendation}</strong>
+                        </p>
+                        <p>${queueMessage}</p>
+                    </div>
+                `;
 
-            setTimeout(() => {
-                this.render();
-            }, 1200);
-        });
+                setTimeout(() => this.render(), 1200);
+            });
 
-        const pricingForm =
-            document.getElementById("pricingForm");
+        document
+            .getElementById("pricingForm")
+            .addEventListener("submit", event => {
+                event.preventDefault();
 
-        pricingForm.addEventListener("submit", event => {
-            event.preventDefault();
-
-            const cost =
-                Number(
+                const cost = Number(
                     document.getElementById("productCost").value
                 );
 
-            const margin =
-                Number(
+                const margin = Number(
                     document.getElementById("targetMargin").value
                 );
 
-            const report =
-                Pricing.calculate(cost, margin);
+                const report = Pricing.calculate(cost, margin);
 
-            document.getElementById("pricingResult").innerHTML = `
-                <div class="result-box">
-                    <p>
-                        Recommended Price:
-                        $${report.psychologicalPrice}
-                    </p>
-                    <p>
-                        Estimated Profit:
-                        $${report.profit}
-                    </p>
-                    <p>ROI: ${report.roi}%</p>
-                    <p>
-                        Suggested Discount:
-                        ${report.discount}%
-                    </p>
-                </div>
-            `;
-        });
+                document.getElementById("pricingResult").innerHTML = `
+                    <div class="result-box">
+                        <p>
+                            Recommended Price:
+                            $${report.psychologicalPrice}
+                        </p>
+                        <p>Estimated Profit: $${report.profit}</p>
+                        <p>ROI: ${report.roi}%</p>
+                        <p>Suggested Discount: ${report.discount}%</p>
+                    </div>
+                `;
+            });
 
-        const contentForm =
-            document.getElementById("contentForm");
+        document
+            .getElementById("contentForm")
+            .addEventListener("submit", event => {
+                event.preventDefault();
 
-        contentForm.addEventListener("submit", event => {
-            event.preventDefault();
-
-            const product =
-                document
+                const product = document
                     .getElementById("contentProduct")
                     .value
                     .trim();
 
-            const report =
-                Content.generate(product);
+                const report = Content.generate(product);
 
-            document.getElementById("contentResult").innerHTML = `
-                <div class="result-box">
-                    <h4>${report.headline}</h4>
-                    <p>${report.shortDescription}</p>
-                    <p>${report.longDescription}</p>
+                document.getElementById("contentResult").innerHTML = `
+                    <div class="result-box">
+                        <h4>${report.headline}</h4>
+                        <p>${report.shortDescription}</p>
+                        <p>${report.longDescription}</p>
 
-                    <h4>Benefits</h4>
+                        <h4>Benefits</h4>
 
-                    <ul>
-                        ${report.bullets
-                            .map(item => `<li>${item}</li>`)
-                            .join("")}
-                    </ul>
+                        <ul>
+                            ${report.bullets
+                                .map(item => `<li>${item}</li>`)
+                                .join("")}
+                        </ul>
 
-                    <p>
-                        <strong>Call to Action:</strong>
-                        ${report.callToAction}
-                    </p>
+                        <p>
+                            <strong>Call to Action:</strong>
+                            ${report.callToAction}
+                        </p>
 
-                    <p>
-                        <strong>SEO Title:</strong>
-                        ${report.seoTitle}
-                    </p>
+                        <p>
+                            <strong>SEO Title:</strong>
+                            ${report.seoTitle}
+                        </p>
 
-                    <p>
-                        <strong>SEO Description:</strong>
-                        ${report.seoDescription}
-                    </p>
+                        <p>
+                            <strong>SEO Description:</strong>
+                            ${report.seoDescription}
+                        </p>
 
-                    <p>
-                        <strong>Hashtags:</strong>
-                        ${report.hashtags.join(" ")}
-                    </p>
-                </div>
-            `;
-        });
+                        <p>
+                            <strong>Hashtags:</strong>
+                            ${report.hashtags.join(" ")}
+                        </p>
+                    </div>
+                `;
+            });
 
-        const socialForm =
-            document.getElementById("socialForm");
+        document
+            .getElementById("socialForm")
+            .addEventListener("submit", event => {
+                event.preventDefault();
 
-        socialForm.addEventListener("submit", event => {
-            event.preventDefault();
-
-            const product =
-                document
+                const product = document
                     .getElementById("socialProduct")
                     .value
                     .trim();
 
-            const post =
-                Social.generate(product);
+                const post = Social.generate(product);
 
-            document.getElementById("socialResult").innerHTML = `
-                <div class="result-box">
-                    <h4>Instagram</h4>
-                    <p>${post.instagram.replace(/\n/g, "<br>")}</p>
+                document.getElementById("socialResult").innerHTML = `
+                    <div class="result-box">
+                        <h4>Instagram</h4>
+                        <p>${post.instagram.replace(/\n/g, "<br>")}</p>
 
-                    <h4>Facebook</h4>
-                    <p>${post.facebook.replace(/\n/g, "<br>")}</p>
+                        <h4>Facebook</h4>
+                        <p>${post.facebook.replace(/\n/g, "<br>")}</p>
 
-                    <h4>X</h4>
-                    <p>${post.x.replace(/\n/g, "<br>")}</p>
+                        <h4>X</h4>
+                        <p>${post.x.replace(/\n/g, "<br>")}</p>
 
-                    <h4>TikTok</h4>
-                    <p>${post.tiktok.replace(/\n/g, "<br>")}</p>
+                        <h4>TikTok</h4>
+                        <p>${post.tiktok.replace(/\n/g, "<br>")}</p>
 
-                    <h4>YouTube</h4>
-                    <p>${post.youtube.replace(/\n/g, "<br>")}</p>
-                </div>
-            `;
-        });
+                        <h4>YouTube</h4>
+                        <p>${post.youtube.replace(/\n/g, "<br>")}</p>
+                    </div>
+                `;
+            });
+
+        document
+            .querySelectorAll(".approveQueueItem")
+            .forEach(button => {
+                button.addEventListener("click", () => {
+                    Queue.approve(Number(button.dataset.id));
+                    this.render();
+                });
+            });
+
+        document
+            .querySelectorAll(".rejectQueueItem")
+            .forEach(button => {
+                button.addEventListener("click", () => {
+                    Queue.reject(Number(button.dataset.id));
+                    this.render();
+                });
+            });
+
+        document
+            .querySelectorAll(".addQueueProduct")
+            .forEach(button => {
+                button.addEventListener("click", () => {
+                    Queue.addToProducts(Number(button.dataset.id));
+                    this.render();
+                });
+            });
 
         document
             .querySelectorAll(".removeQueueItem")
             .forEach(button => {
                 button.addEventListener("click", () => {
-                    Queue.remove(
-                        Number(button.dataset.id)
-                    );
-
+                    Queue.remove(Number(button.dataset.id));
                     this.render();
                 });
             });
