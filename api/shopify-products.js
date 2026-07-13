@@ -1,90 +1,122 @@
 /*
 ==========================================
 PLL SHOPIFY PRODUCTS API
-Securely retrieves products from Shopify
+OAuth Session Authentication
 ==========================================
 */
 
-export default async function handler(request, response) {
-    if (request.method !== "GET") {
-        return response.status(405).json({
+export default async function handler(req, res) {
+
+    if (req.method !== "GET") {
+        return res.status(405).json({
             success: false,
             message: "Method not allowed."
         });
     }
 
-    const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
-    const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
-    const apiVersion =
-        process.env.SHOPIFY_API_VERSION || "2026-07";
+    try {
 
-    if (!storeDomain || !accessToken) {
-        return response.status(500).json({
-            success: false,
-            message: "Shopify credentials are not configured in Vercel."
-        });
-    }
+        const SHOP = process.env.SHOPIFY_STORE_DOMAIN;
+        const TOKEN = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
 
-    const normalizedDomain = storeDomain
-        .replace(/^https?:\/\//, "")
-        .replace(/\/$/, "");
+        if (!SHOP) {
+            return res.status(500).json({
+                success: false,
+                message: "SHOPIFY_STORE_DOMAIN missing."
+            });
+        }
 
-    const query = `
-        query GetProducts {
-            products(first: 50) {
-                nodes {
-                    id
-                    title
-                    handle
-                    status
-                    vendor
-                    productType
-                    descriptionHtml
-                    totalInventory
-                    featuredMedia {
-                        preview {
-                            image {
-                                url
-                                altText
+        if (!TOKEN) {
+            return res.status(401).json({
+                success: false,
+                requiresInstall: true,
+                message: "No Admin API session found. Install the app from Shopify Admin."
+            });
+        }
+
+        const endpoint =
+            `https://${SHOP}/admin/api/2026-07/graphql.json`;
+
+        const query = `
+        {
+            products(first:50){
+                edges{
+                    node{
+                        id
+                        title
+                        handle
+                        vendor
+                        productType
+                        status
+                        totalInventory
+
+                        featuredImage{
+                            url
+                        }
+
+                        variants(first:10){
+                            edges{
+                                node{
+                                    id
+                                    title
+                                    price
+                                    sku
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    `;
+        `;
 
-    try {
-        const shopifyResponse = await fetch(
-            `https://${normalizedDomain}/admin/api/${apiVersion}/graphql.json`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Shopify-Access-Token": accessToken
-                },
-                body: JSON.stringify({ query })
-            }
-        );
+        const response = await fetch(endpoint,{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json",
+                "X-Shopify-Access-Token":TOKEN
+            },
+            body:JSON.stringify({
+                query
+            })
+        });
 
-        const data = await shopifyResponse.json();
+        const json = await response.json();
 
-        if (!shopifyResponse.ok || data.errors) {
-            return response.status(502).json({
-                success: false,
-                message: "Shopify product retrieval failed.",
-                errors: data.errors || data
+        if(json.errors){
+
+            return res.status(500).json({
+                success:false,
+                errors:json.errors
             });
+
         }
 
-        return response.status(200).json({
-            success: true,
-            products: data.data.products.nodes
+        const products =
+            json.data.products.edges.map(edge=>edge.node);
+
+        return res.status(200).json({
+
+            success:true,
+
+            count:products.length,
+
+            products
+
         });
-    } catch (error) {
-        return response.status(500).json({
-            success: false,
-            message: error.message
-        });
+
     }
+
+    catch(error){
+
+        return res.status(500).json({
+
+            success:false,
+
+            message:error.message
+
+        });
+
+    }
+
 }
