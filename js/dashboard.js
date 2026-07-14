@@ -239,7 +239,6 @@ const Dashboard = {
                     </div>
                 `;
 
-                setTimeout(() => this.render(), 1200);
             });
 
         document
