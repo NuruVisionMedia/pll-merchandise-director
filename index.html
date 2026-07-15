@@ -13,7 +13,25 @@
 
 <body>
 
-<div id="app"></div>
+<div id="app">
+
+    <h1>PLL Merchandise Director</h1>
+
+    <form id="researchForm">
+        <label for="researchProduct">Product Name</label>
+        <input
+            type="text"
+            id="researchProduct"
+            name="researchProduct"
+            placeholder="e.g. Push Up Bars"
+            required
+        >
+        <button type="submit">Research Product</button>
+    </form>
+
+    <div id="researchResult"></div>
+
+</div>
 
 <script src="js/products.js"></script>
 <script src="js/ai.js"></script>
