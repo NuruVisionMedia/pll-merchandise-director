@@ -1,390 +1,80 @@
-/*
-==========================================
-PLL AI OPERATIONS
-Dashboard Module
-==========================================
-*/
+document
+    .getElementById("researchForm")
+    .addEventListener("submit", async event => {
+        event.preventDefault();
 
-const Dashboard = {
+        const productName = document
+            .getElementById("researchProduct")
+            .value
+            .trim();
 
-    init() {
-        Queue.init();
-        this.render();
-    },
+        const resultContainer =
+            document.getElementById("researchResult");
 
-    render() {
-        const app = document.getElementById("app");
-
-        if (!app) {
-            throw new Error("Application root not found.");
-        }
-
-        const queueItems = Queue.list();
-
-        app.innerHTML = `
-            <div class="container">
-
-                <div class="card">
-                    <h1>PLL AI Operations</h1>
-                    <p>Support Agents for the PLL Merchandise Director</p>
-                </div>
-
-                <div class="card">
-                    <h3>Product Research Agent</h3>
-
-                    <form id="researchForm">
-                        <input
-                            id="researchProduct"
-                            type="text"
-                            placeholder="Enter product name"
-                            required
-                        >
-
-                        <button type="submit">
-                            Analyze Product
-                        </button>
-                    </form>
-
-                    <div id="researchResult"></div>
-                </div>
-
-                <div class="card">
-                    <h3>Pricing Agent</h3>
-
-                    <form id="pricingForm">
-                        <input
-                            id="productCost"
-                            type="number"
-                            min="0.01"
-                            step="0.01"
-                            placeholder="Product cost"
-                            required
-                        >
-
-                        <input
-                            id="targetMargin"
-                            type="number"
-                            min="1"
-                            max="95"
-                            value="50"
-                            placeholder="Target margin"
-                            required
-                        >
-
-                        <button type="submit">
-                            Calculate Price
-                        </button>
-                    </form>
-
-                    <div id="pricingResult"></div>
-                </div>
-
-                <div class="card">
-                    <h3>Content Creator</h3>
-
-                    <form id="contentForm">
-                        <input
-                            id="contentProduct"
-                            type="text"
-                            placeholder="Enter product name"
-                            required
-                        >
-
-                        <button type="submit">
-                            Generate Content
-                        </button>
-                    </form>
-
-                    <div id="contentResult"></div>
-                </div>
-
-                <div class="card">
-                    <h3>Social Media Agent</h3>
-
-                    <form id="socialForm">
-                        <input
-                            id="socialProduct"
-                            type="text"
-                            placeholder="Enter product name"
-                            required
-                        >
-
-                        <button type="submit">
-                            Generate Posts
-                        </button>
-                    </form>
-
-                    <div id="socialResult"></div>
-                </div>
-
-                <div class="card">
-                    <h3>Merchandise Director Queue</h3>
-
-                    <div id="queueList">
-                        ${
-                            queueItems.length
-                                ? queueItems.map(item => `
-                                    <div class="product-row">
-                                        <div>
-                                            <strong>${item.product}</strong>
-                                            <span>Pillar: ${item.pillar}</span>
-                                            <span>PLL Score: ${item.pllScore}</span>
-                                            <span>
-                                                Recommendation:
-                                                ${item.recommendation}
-                                            </span>
-                                            <span>Status: ${item.status}</span>
-                                        </div>
-
-                                        <div class="queue-actions">
-                                            ${
-                                                !item.approved &&
-                                                item.status !==
-                                                    "Rejected by Merchandise Director"
-                                                    ? `
-                                                        <button
-                                                            class="approveQueueItem"
-                                                            data-id="${item.id}"
-                                                        >
-                                                            Approve
-                                                        </button>
-
-                                                        <button
-                                                            class="rejectQueueItem"
-                                                            data-id="${item.id}"
-                                                        >
-                                                            Reject
-                                                        </button>
-                                                    `
-                                                    : ""
-                                            }
-
-                                            ${
-                                                item.approved &&
-                                                !item.addedToProducts
-                                                    ? `
-                                                        <button
-                                                            class="addQueueProduct"
-                                                            data-id="${item.id}"
-                                                        >
-                                                            Add to Products
-                                                        </button>
-                                                    `
-                                                    : ""
-                                            }
-
-                                            <button
-                                                class="removeQueueItem"
-                                                data-id="${item.id}"
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    </div>
-                                `).join("")
-                                : "<p>No products are waiting for review.</p>"
-                        }
-                    </div>
-                </div>
-
+        resultContainer.innerHTML = `
+            <div class="result-box">
+                <p>Searching the live Shopify store...</p>
             </div>
         `;
 
-        this.attachEvents();
-    },
+        try {
+            const report = await Research.analyze(productName);
 
-    attachEvents() {
-        document
-            .getElementById("researchForm")
-            .addEventListener("submit", event => {
-                event.preventDefault();
-
-                const product = document
-                    .getElementById("researchProduct")
-                    .value
-                    .trim();
-
-                const report = Research.analyze(product);
-
-                let queueMessage =
-                    "Product requires additional research.";
-
-                if (
-                    report.recommendation === "APPROVE" ||
-                    report.recommendation === "STRONG CANDIDATE"
-                ) {
-                    Queue.add(report);
-
-                    queueMessage =
-                        "Automatically sent to the Merchandise Director queue.";
-                }
-
-                document.getElementById("researchResult").innerHTML = `
+            if (!report.found) {
+                resultContainer.innerHTML = `
                     <div class="result-box">
-                        <strong>${report.product}</strong>
-                        <p>Pillar: ${report.pillar}</p>
-                        <p>Demand: ${report.demand}</p>
-                        <p>Competition: ${report.competition}</p>
-                        <p>Profit Margin: ${report.profitMargin}%</p>
-                        <p>Trend Score: ${report.trendScore}</p>
-                        <p>Coach Score: ${report.coachScore}</p>
-                        <p>Brand Score: ${report.brandScore}</p>
-                        <p>Shipping Score: ${report.shippingScore}</p>
-                        <p>PLL Score: ${report.pllScore}</p>
-                        <p>
-                            Recommendation:
-                            <strong>${report.recommendation}</strong>
-                        </p>
-                        <p>${queueMessage}</p>
+                        <strong>Product Not Found</strong>
+                        <p>${report.message}</p>
                     </div>
                 `;
+                return;
+            }
 
-            });
+            const priceDisplay =
+                report.minimumPrice === report.maximumPrice
+                    ? `$${report.minimumPrice.toFixed(2)}`
+                    : `$${report.minimumPrice.toFixed(2)} – $${report.maximumPrice.toFixed(2)}`;
 
-        document
-            .getElementById("pricingForm")
-            .addEventListener("submit", event => {
-                event.preventDefault();
+            resultContainer.innerHTML = `
+                <div class="result-box">
 
-                const cost = Number(
-                    document.getElementById("productCost").value
-                );
+                    ${
+                        report.imageUrl
+                            ? `
+                                <img
+                                    src="${report.imageUrl}"
+                                    alt="${report.product}"
+                                    style="max-width:180px; border-radius:8px; margin-bottom:15px;"
+                                >
+                            `
+                            : ""
+                    }
 
-                const margin = Number(
-                    document.getElementById("targetMargin").value
-                );
+                    <h4>${report.product}</h4>
 
-                const report = Pricing.calculate(cost, margin);
+                    <p><strong>Source:</strong> ${report.source}</p>
+                    <p><strong>Vendor:</strong> ${report.vendor}</p>
+                    <p><strong>Product Type:</strong> ${report.productType}</p>
+                    <p><strong>Status:</strong> ${report.status}</p>
+                    <p><strong>Total Inventory:</strong> ${report.totalInventory}</p>
+                    <p><strong>Variants:</strong> ${report.variantCount}</p>
+                    <p><strong>Price:</strong> ${priceDisplay}</p>
+                    <p>
+                        <strong>SKUs:</strong>
+                        ${report.skuList.length
+                            ? report.skuList.join(", ")
+                            : "No SKUs assigned"}
+                    </p>
 
-                document.getElementById("pricingResult").innerHTML = `
-                    <div class="result-box">
-                        <p>
-                            Recommended Price:
-                            $${report.psychologicalPrice}
-                        </p>
-                        <p>Estimated Profit: $${report.profit}</p>
-                        <p>ROI: ${report.roi}%</p>
-                        <p>Suggested Discount: ${report.discount}%</p>
-                    </div>
-                `;
-            });
+                </div>
+            `;
 
-        document
-            .getElementById("contentForm")
-            .addEventListener("submit", event => {
-                event.preventDefault();
-
-                const product = document
-                    .getElementById("contentProduct")
-                    .value
-                    .trim();
-
-                const report = Content.generate(product);
-
-                document.getElementById("contentResult").innerHTML = `
-                    <div class="result-box">
-                        <h4>${report.headline}</h4>
-                        <p>${report.shortDescription}</p>
-                        <p>${report.longDescription}</p>
-
-                        <h4>Benefits</h4>
-
-                        <ul>
-                            ${report.bullets
-                                .map(item => `<li>${item}</li>`)
-                                .join("")}
-                        </ul>
-
-                        <p>
-                            <strong>Call to Action:</strong>
-                            ${report.callToAction}
-                        </p>
-
-                        <p>
-                            <strong>SEO Title:</strong>
-                            ${report.seoTitle}
-                        </p>
-
-                        <p>
-                            <strong>SEO Description:</strong>
-                            ${report.seoDescription}
-                        </p>
-
-                        <p>
-                            <strong>Hashtags:</strong>
-                            ${report.hashtags.join(" ")}
-                        </p>
-                    </div>
-                `;
-            });
-
-        document
-            .getElementById("socialForm")
-            .addEventListener("submit", event => {
-                event.preventDefault();
-
-                const product = document
-                    .getElementById("socialProduct")
-                    .value
-                    .trim();
-
-                const post = Social.generate(product);
-
-                document.getElementById("socialResult").innerHTML = `
-                    <div class="result-box">
-                        <h4>Instagram</h4>
-                        <p>${post.instagram.replace(/\n/g, "<br>")}</p>
-
-                        <h4>Facebook</h4>
-                        <p>${post.facebook.replace(/\n/g, "<br>")}</p>
-
-                        <h4>X</h4>
-                        <p>${post.x.replace(/\n/g, "<br>")}</p>
-
-                        <h4>TikTok</h4>
-                        <p>${post.tiktok.replace(/\n/g, "<br>")}</p>
-
-                        <h4>YouTube</h4>
-                        <p>${post.youtube.replace(/\n/g, "<br>")}</p>
-                    </div>
-                `;
-            });
-
-        document
-            .querySelectorAll(".approveQueueItem")
-            .forEach(button => {
-                button.addEventListener("click", () => {
-                    Queue.approve(Number(button.dataset.id));
-                    this.render();
-                });
-            });
-
-        document
-            .querySelectorAll(".rejectQueueItem")
-            .forEach(button => {
-                button.addEventListener("click", () => {
-                    Queue.reject(Number(button.dataset.id));
-                    this.render();
-                });
-            });
-
-        document
-            .querySelectorAll(".addQueueProduct")
-            .forEach(button => {
-                button.addEventListener("click", () => {
-                    Queue.addToProducts(Number(button.dataset.id));
-                    this.render();
-                });
-            });
-
-        document
-            .querySelectorAll(".removeQueueItem")
-            .forEach(button => {
-                button.addEventListener("click", () => {
-                    Queue.remove(Number(button.dataset.id));
-                    this.render();
-                });
-            });
-    }
-
-};
+        } catch (error) {
+            resultContainer.innerHTML = `
+                <div class="result-box">
+                    <strong>Shopify Connection Error</strong>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        }
+    });
