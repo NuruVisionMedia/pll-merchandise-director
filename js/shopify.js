@@ -6,6 +6,10 @@ PLL SHOPIFY CLIENT
 
 const Shopify = {
 
+    init() {
+        console.log("Shopify Client Loaded");
+    },
+
     async getProducts() {
 
         const response = await fetch("/api/shopify-products");
