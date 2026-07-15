@@ -1,183 +1,87 @@
 /*
 ==========================================
-PLL SHOPIFY PRODUCTS API
-Client Credentials Authentication
+PLL MERCHANDISE DIRECTOR
+Products Module (client-side store)
 ==========================================
 */
 
-let cachedAccessToken = null;
-let tokenExpiresAt = 0;
+const Products = {
 
-function normalizeStoreDomain(domain) {
-    return domain
-        .trim()
-        .replace(/^https?:\/\//, "")
-        .replace(/\/+$/, "");
-}
+    storageKey: "pll-products",
 
-async function getAccessToken(storeDomain, clientId, clientSecret) {
-    if (
-        cachedAccessToken &&
-        Date.now() < tokenExpiresAt - 60_000
-    ) {
-        return cachedAccessToken;
-    }
+    items: [],
 
-    const tokenResponse = await fetch(
-        `https://${storeDomain}/admin/oauth/access_token`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type":
-                    "application/x-www-form-urlencoded"
-            },
-            body: new URLSearchParams({
-                grant_type: "client_credentials",
-                client_id: clientId,
-                client_secret: clientSecret
-            })
-        }
-    );
+    init() {
+        console.log("Products Module Loaded");
+        this.load();
+    },
 
-    const tokenData = await tokenResponse.json();
+    load() {
+        const saved = localStorage.getItem(this.storageKey);
 
-    if (!tokenResponse.ok || !tokenData.access_token) {
-        throw new Error(
-            tokenData.error_description ||
-            tokenData.error ||
-            `Shopify token request failed (${tokenResponse.status}).`
-        );
-    }
+        this.items = saved ? JSON.parse(saved) : [];
 
-    cachedAccessToken = tokenData.access_token;
-    tokenExpiresAt =
-        Date.now() + Number(tokenData.expires_in || 86399) * 1000;
+        PLL.state.products = this.items;
 
-    return cachedAccessToken;
-}
+        return this.items;
+    },
 
-export default async function handler(request, response) {
-    if (request.method !== "GET") {
-        response.setHeader("Allow", "GET");
-
-        return response.status(405).json({
-            success: false,
-            message: "Method not allowed."
-        });
-    }
-
-    const storeDomainValue =
-        process.env.SHOPIFY_STORE_DOMAIN;
-
-    const clientId =
-        process.env.SHOPIFY_API_KEY;
-
-    const clientSecret =
-        process.env.SHOPIFY_API_SECRET;
-
-    const apiVersion =
-        process.env.SHOPIFY_API_VERSION || "2026-07";
-
-    if (!storeDomainValue || !clientId || !clientSecret) {
-        return response.status(500).json({
-            success: false,
-            message:
-                "Shopify store domain, API key, or API secret is missing in Vercel."
-        });
-    }
-
-    const storeDomain =
-        normalizeStoreDomain(storeDomainValue);
-
-    const query = `
-        query GetProducts {
-            products(first: 50) {
-                nodes {
-                    id
-                    title
-                    handle
-                    status
-                    vendor
-                    productType
-                    descriptionHtml
-                    totalInventory
-
-                    featuredMedia {
-                        preview {
-                            image {
-                                url
-                                altText
-                            }
-                        }
-                    }
-
-                    variants(first: 25) {
-                        nodes {
-                            id
-                            title
-                            sku
-                            price
-                            inventoryQuantity
-                        }
-                    }
-                }
-            }
-        }
-    `;
-
-    try {
-        const accessToken = await getAccessToken(
-            storeDomain,
-            clientId,
-            clientSecret
+    save() {
+        localStorage.setItem(
+            this.storageKey,
+            JSON.stringify(this.items)
         );
 
-        const shopifyResponse = await fetch(
-            `https://${storeDomain}/admin/api/${apiVersion}/graphql.json`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Shopify-Access-Token": accessToken
-                },
-                body: JSON.stringify({ query })
-            }
-        );
+        PLL.state.products = this.items;
+    },
 
-        const result = await shopifyResponse.json();
+    add(product) {
+        const item = {
+            id: Date.now(),
+            title: product.title,
+            pillar: product.pillar || "Unassigned",
+            status: product.status || "Draft",
+            pllScore: product.pllScore ?? 0,
+            seoScore: product.seoScore ?? 0,
+            recommendations: product.recommendations || [],
+            createdAt: new Date().toISOString()
+        };
 
-        if (
-            !shopifyResponse.ok ||
-            Array.isArray(result.errors)
-        ) {
-            return response.status(502).json({
-                success: false,
-                message:
-                    "Shopify product retrieval failed.",
-                errors: result.errors || result
-            });
+        this.items.push(item);
+        this.save();
+
+        return item;
+    },
+
+    update(id, changes) {
+        const item = this.find(id);
+
+        if (!item) {
+            return null;
         }
 
-        const products =
-            result?.data?.products?.nodes || [];
+        Object.assign(item, changes);
+        this.save();
 
-        return response.status(200).json({
-            success: true,
-            count: products.length,
-            products
-        });
-    } catch (error) {
-        console.error(
-            "Shopify products API error:",
-            error
+        return item;
+    },
+
+    find(id) {
+        return this.items.find(
+            item => item.id === id
+        );
+    },
+
+    remove(id) {
+        this.items = this.items.filter(
+            item => item.id !== id
         );
 
-        return response.status(500).json({
-            success: false,
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "An unknown Shopify error occurred."
-        });
+        this.save();
+    },
+
+    list() {
+        return this.items;
     }
-}
+
+};
