@@ -1,87 +1,63 @@
 /*
 ==========================================
 PLL MERCHANDISE DIRECTOR
-Products Module (client-side store)
+Products Module
 ==========================================
 */
-
 const Products = {
-
     storageKey: "pll-products",
-
-    items: [],
-
     init() {
         console.log("Products Module Loaded");
         this.load();
     },
-
     load() {
-        const saved = localStorage.getItem(this.storageKey);
-
-        this.items = saved ? JSON.parse(saved) : [];
-
-        PLL.state.products = this.items;
-
-        return this.items;
+        const savedProducts = localStorage.getItem(this.storageKey);
+        if (savedProducts) {
+            PLL.state.products = JSON.parse(savedProducts);
+        }
+        return PLL.state.products;
     },
-
     save() {
         localStorage.setItem(
             this.storageKey,
-            JSON.stringify(this.items)
+            JSON.stringify(PLL.state.products)
         );
-
-        PLL.state.products = this.items;
     },
-
+    list() {
+        return PLL.state.products;
+    },
     add(product) {
-        const item = {
+        const newProduct = {
             id: Date.now(),
-            title: product.title,
-            pillar: product.pillar || "Unassigned",
+            title: product.title || "Untitled Product",
+            pillar: product.pillar || "TRAIN",
             status: product.status || "Draft",
-            pllScore: product.pllScore ?? 0,
-            seoScore: product.seoScore ?? 0,
-            recommendations: product.recommendations || [],
-            createdAt: new Date().toISOString()
+            pllScore: product.pllScore || 0,
+            seoScore: product.seoScore || 0,
+            recommendations: product.recommendations || []
         };
-
-        this.items.push(item);
+        PLL.state.products.push(newProduct);
         this.save();
-
-        return item;
+        return newProduct;
     },
-
-    update(id, changes) {
-        const item = this.find(id);
-
-        if (!item) {
+    update(id, updates) {
+        const product = this.findById(id);
+        if (!product) {
             return null;
         }
-
-        Object.assign(item, changes);
+        Object.assign(product, updates);
         this.save();
-
-        return item;
+        return product;
     },
-
-    find(id) {
-        return this.items.find(
-            item => item.id === id
-        );
-    },
-
     remove(id) {
-        this.items = this.items.filter(
-            item => item.id !== id
+        PLL.state.products = PLL.state.products.filter(
+            product => product.id !== id
         );
-
         this.save();
     },
-
-    list() {
-        return this.items;
+    findById(id) {
+        return PLL.state.products.find(
+            product => product.id === id
+        );
     }
-
 };
