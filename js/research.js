@@ -1,7 +1,7 @@
 /*
 ==========================================
 PLL PRODUCT RESEARCH AGENT
-Version 1.1
+Live Shopify Product Research
 ==========================================
 */
 
@@ -10,131 +10,76 @@ const Research = {
     reports: [],
 
     init() {
-        console.log("Product Research Agent Loaded");
+        console.log("Live Shopify Product Research Agent Loaded");
     },
 
-    analyze(productName) {
+    async analyze(productName) {
+
+        const searchName = productName.trim().toLowerCase();
+
+        if (!searchName) {
+            throw new Error("Enter a product name.");
+        }
+
+        const products = await Shopify.getProducts();
+
+        const product = products.find(item => {
+            const title = String(item.title || "").toLowerCase();
+            return (
+                title === searchName ||
+                title.includes(searchName) ||
+                searchName.includes(title)
+            );
+        });
+
+        if (!product) {
+            return {
+                found: false,
+                product: productName,
+                message: `"${productName}" was not found in the live Shopify store.`
+            };
+        }
+
+        const variants = Array.isArray(product.variants?.edges)
+            ? product.variants.edges.map(edge => edge.node)
+            : [];
+
+        const prices = variants
+            .map(variant => Number(variant.price))
+            .filter(price => Number.isFinite(price));
 
         const report = {
             id: Date.now(),
-            product: productName,
-            supplier: "Pending",
-            pillar: this.detectPillar(productName),
-
-            demand: 75,
-            competition: 50,
-            profitMargin: 60,
-            trendScore: this.randomScore(80,100),
-            coachScore: this.randomScore(85,100),
-            brandScore: this.randomScore(80,100),
-            repeatPurchaseScore: this.randomScore(80,100),
-            shippingScore: this.randomScore(75,100),
-
-            pllScore: 0,
-            recommendation: "",
-            status: "Pending Review",
-            approved: false
+            found: true,
+            source: "Live Shopify Store",
+            shopifyId: product.id,
+            product: product.title,
+            handle: product.handle || "",
+            vendor: product.vendor || "Not assigned",
+            productType: product.productType || "Not assigned",
+            status: product.status || "Unknown",
+            totalInventory: Number(product.totalInventory || 0),
+            imageUrl: product.featuredImage?.url || "",
+            variantCount: variants.length,
+            variants,
+            minimumPrice: prices.length ? Math.min(...prices) : 0,
+            maximumPrice: prices.length ? Math.max(...prices) : 0,
+            skuList: variants
+                .map(variant => variant.sku)
+                .filter(Boolean),
+            researchedAt: new Date().toISOString()
         };
-
-        report.pllScore = this.calculatePLLScore(report);
-        report.recommendation = this.recommend(report.pllScore);
 
         this.reports.push(report);
 
         return report;
     },
 
-    detectPillar(productName){
-
-        const name = productName.toLowerCase();
-
-        if(name.includes("protein") ||
-           name.includes("vitamin") ||
-           name.includes("creatine"))
-            return "FUEL";
-
-        if(name.includes("journal") ||
-           name.includes("sleep") ||
-           name.includes("meditation"))
-            return "FOCUS";
-
-        return "TRAIN";
-
+    find(id) {
+        return this.reports.find(report => report.id === id);
     },
 
-    randomScore(min,max){
-        return Math.floor(Math.random()*(max-min+1))+min;
-    },
-
-    calculatePLLScore(report){
-
-        return Math.round(
-
-            report.demand*.18+
-
-            (100-report.competition)*.15+
-
-            report.profitMargin*.18+
-
-            report.trendScore*.12+
-
-            report.coachScore*.10+
-
-            report.brandScore*.10+
-
-            report.repeatPurchaseScore*.10+
-
-            report.shippingScore*.07
-
-        );
-
-    },
-
-    recommend(score){
-
-        if(score>=90) return "APPROVE";
-        if(score>=80) return "STRONG CANDIDATE";
-        if(score>=70) return "RESEARCH FURTHER";
-
-        return "REJECT";
-
-    },
-
-    approve(id){
-
-        const report=this.find(id);
-
-        if(!report) return null;
-
-        report.approved=true;
-        report.status="Approved";
-
-        return report;
-
-    },
-
-    reject(id){
-
-        const report=this.find(id);
-
-        if(!report) return null;
-
-        report.approved=false;
-        report.status="Rejected";
-
-        return report;
-
-    },
-
-    find(id){
-
-        return this.reports.find(
-            report=>report.id===id
-        );
-
-    },
-
-    getReports(){
+    getReports() {
         return this.reports;
     }
 
