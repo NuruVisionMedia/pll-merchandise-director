@@ -1,80 +1,95 @@
-document
-    .getElementById("researchForm")
-    .addEventListener("submit", async event => {
-        event.preventDefault();
+/*
+==========================================
+PLL MERCHANDISE DIRECTOR
+Dashboard Module
+==========================================
+*/
 
-        const productName = document
-            .getElementById("researchProduct")
-            .value
-            .trim();
+const Dashboard = {
 
-        const resultContainer =
-            document.getElementById("researchResult");
+    init() {
+        console.log("Dashboard Module Loaded");
 
-        resultContainer.innerHTML = `
-            <div class="result-box">
-                <p>Searching the live Shopify store...</p>
-            </div>
-        `;
+        document
+            .getElementById("researchForm")
+            .addEventListener("submit", async event => {
+                event.preventDefault();
 
-        try {
-            const report = await Research.analyze(productName);
+                const productName = document
+                    .getElementById("researchProduct")
+                    .value
+                    .trim();
 
-            if (!report.found) {
+                const resultContainer =
+                    document.getElementById("researchResult");
+
                 resultContainer.innerHTML = `
                     <div class="result-box">
-                        <strong>Product Not Found</strong>
-                        <p>${report.message}</p>
+                        <p>Searching the live Shopify store...</p>
                     </div>
                 `;
-                return;
-            }
 
-            const priceDisplay =
-                report.minimumPrice === report.maximumPrice
-                    ? `$${report.minimumPrice.toFixed(2)}`
-                    : `$${report.minimumPrice.toFixed(2)} – $${report.maximumPrice.toFixed(2)}`;
+                try {
+                    const report = await Research.analyze(productName);
 
-            resultContainer.innerHTML = `
-                <div class="result-box">
-
-                    ${
-                        report.imageUrl
-                            ? `
-                                <img
-                                    src="${report.imageUrl}"
-                                    alt="${report.product}"
-                                    style="max-width:180px; border-radius:8px; margin-bottom:15px;"
-                                >
-                            `
-                            : ""
+                    if (!report.found) {
+                        resultContainer.innerHTML = `
+                            <div class="result-box">
+                                <strong>Product Not Found</strong>
+                                <p>${report.message}</p>
+                            </div>
+                        `;
+                        return;
                     }
 
-                    <h4>${report.product}</h4>
+                    const priceDisplay =
+                        report.minimumPrice === report.maximumPrice
+                            ? `$${report.minimumPrice.toFixed(2)}`
+                            : `$${report.minimumPrice.toFixed(2)} – $${report.maximumPrice.toFixed(2)}`;
 
-                    <p><strong>Source:</strong> ${report.source}</p>
-                    <p><strong>Vendor:</strong> ${report.vendor}</p>
-                    <p><strong>Product Type:</strong> ${report.productType}</p>
-                    <p><strong>Status:</strong> ${report.status}</p>
-                    <p><strong>Total Inventory:</strong> ${report.totalInventory}</p>
-                    <p><strong>Variants:</strong> ${report.variantCount}</p>
-                    <p><strong>Price:</strong> ${priceDisplay}</p>
-                    <p>
-                        <strong>SKUs:</strong>
-                        ${report.skuList.length
-                            ? report.skuList.join(", ")
-                            : "No SKUs assigned"}
-                    </p>
+                    resultContainer.innerHTML = `
+                        <div class="result-box">
 
-                </div>
-            `;
+                            ${
+                                report.imageUrl
+                                    ? `
+                                        <img
+                                            src="${report.imageUrl}"
+                                            alt="${report.product}"
+                                            style="max-width:180px; border-radius:8px; margin-bottom:15px;"
+                                        >
+                                    `
+                                    : ""
+                            }
 
-        } catch (error) {
-            resultContainer.innerHTML = `
-                <div class="result-box">
-                    <strong>Shopify Connection Error</strong>
-                    <p>${error.message}</p>
-                </div>
-            `;
-        }
-    });
+                            <h4>${report.product}</h4>
+
+                            <p><strong>Source:</strong> ${report.source}</p>
+                            <p><strong>Vendor:</strong> ${report.vendor}</p>
+                            <p><strong>Product Type:</strong> ${report.productType}</p>
+                            <p><strong>Status:</strong> ${report.status}</p>
+                            <p><strong>Total Inventory:</strong> ${report.totalInventory}</p>
+                            <p><strong>Variants:</strong> ${report.variantCount}</p>
+                            <p><strong>Price:</strong> ${priceDisplay}</p>
+                            <p>
+                                <strong>SKUs:</strong>
+                                ${report.skuList.length
+                                    ? report.skuList.join(", ")
+                                    : "No SKUs assigned"}
+                            </p>
+
+                        </div>
+                    `;
+
+                } catch (error) {
+                    resultContainer.innerHTML = `
+                        <div class="result-box">
+                            <strong>Shopify Connection Error</strong>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                }
+            });
+    }
+
+};
