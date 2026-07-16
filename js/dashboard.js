@@ -230,6 +230,7 @@ const Dashboard = {
                         <div class="result-box">
                             <strong>${report.product}</strong>
                             <p>Pillar: ${report.pillar}</p>
+                            <p><em>${report.pillarReasoning || ""}</em></p>
                             <p>Supplier/Vendor: ${report.supplier}</p>
                             <p>Status: ${report.status}</p>
                             <p>Total Inventory: ${report.totalInventory}</p>
