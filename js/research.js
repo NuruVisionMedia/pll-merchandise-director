@@ -47,21 +47,25 @@ const Research = {
             .map(variant => Number(variant.price))
             .filter(price => Number.isFinite(price));
 
-        const margins = variants
-            .map(variant => {
-                const price = Number(variant.price);
-                const cost = Number(variant.inventoryItem?.unitCost?.amount);
+        const margins = [];
+        const costs = [];
 
-                if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(cost)) {
-                    return null;
-                }
+        variants.forEach(variant => {
+            const price = Number(variant.price);
+            const cost = Number(variant.inventoryItem?.unitCost?.amount);
 
-                return ((price - cost) / price) * 100;
-            })
-            .filter(margin => margin !== null);
+            if (Number.isFinite(price) && price > 0 && Number.isFinite(cost) && cost > 0) {
+                margins.push(((price - cost) / price) * 100);
+                costs.push(cost);
+            }
+        });
 
         const profitMargin = margins.length
             ? Number((margins.reduce((sum, m) => sum + m, 0) / margins.length).toFixed(1))
+            : null;
+
+        const averageCost = costs.length
+            ? Number((costs.reduce((sum, c) => sum + c, 0) / costs.length).toFixed(2))
             : null;
 
         const pillarResult = await this.classifyPillar(product);
@@ -81,6 +85,7 @@ const Research = {
             skuList: variants.map(v => v.sku).filter(Boolean),
             imageUrl: product.featuredMedia?.preview?.image?.url || "",
             profitMargin,
+            averageCost,
             demand: "Needs Manual Review",
             competition: "Needs Manual Review",
             trendScore: null,
