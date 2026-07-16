@@ -1,7 +1,7 @@
 /*
 ==========================================
 PLL PRODUCT RESEARCH AGENT
-Live Shopify Product Research
+Live Shopify Product Research + AI Pillar Classification
 ==========================================
 */
 const Research = {
@@ -64,12 +64,15 @@ const Research = {
             ? Number((margins.reduce((sum, m) => sum + m, 0) / margins.length).toFixed(1))
             : null;
 
+        const pillarResult = await this.classifyPillar(product);
+
         const report = {
             id: Date.now(),
             found: true,
             product: product.title,
             supplier: product.vendor || "Not assigned",
-            pillar: this.detectPillar(product.title),
+            pillar: pillarResult.pillar,
+            pillarReasoning: pillarResult.reasoning,
             status: product.status || "Unknown",
             totalInventory: Number(product.totalInventory || 0),
             variantCount: variants.length,
@@ -94,7 +97,40 @@ const Research = {
 
         return report;
     },
-    detectPillar(productName) {
+    async classifyPillar(product) {
+        try {
+            const response = await fetch("/api/classify-pillar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: product.title,
+                    productType: product.productType,
+                    description: (product.descriptionHtml || "").replace(/<[^>]*>/g, "")
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                return {
+                    pillar: this.detectPillarFallback(product.title),
+                    reasoning: "AI classification unavailable — used keyword fallback."
+                };
+            }
+
+            return {
+                pillar: data.pillar,
+                reasoning: data.reasoning
+            };
+
+        } catch (error) {
+            return {
+                pillar: this.detectPillarFallback(product.title),
+                reasoning: "AI classification unavailable — used keyword fallback."
+            };
+        }
+    },
+    detectPillarFallback(productName) {
         const name = productName.toLowerCase();
 
         if (
