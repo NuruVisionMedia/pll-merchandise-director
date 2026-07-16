@@ -4,17 +4,12 @@ PLL PRODUCT RESEARCH AGENT
 Live Shopify Product Research
 ==========================================
 */
-
 const Research = {
-
     reports: [],
-
     init() {
-        console.log("Live Shopify Product Research Agent Loaded");
+        console.log("Product Research Agent Loaded");
     },
-
     async analyze(productName) {
-
         const searchName = productName.trim().toLowerCase();
 
         if (!searchName) {
@@ -33,54 +28,97 @@ const Research = {
         });
 
         if (!product) {
-            return {
+            const notFound = {
+                id: Date.now(),
                 found: false,
                 product: productName,
                 message: `"${productName}" was not found in the live Shopify store.`
             };
+
+            this.reports.push(notFound);
+            return notFound;
         }
 
-        const variants = Array.isArray(product.variants?.edges)
-            ? product.variants.edges.map(edge => edge.node)
+        const variants = Array.isArray(product.variants?.nodes)
+            ? product.variants.nodes
             : [];
 
         const prices = variants
             .map(variant => Number(variant.price))
             .filter(price => Number.isFinite(price));
 
+        const margins = variants
+            .map(variant => {
+                const price = Number(variant.price);
+                const cost = Number(variant.inventoryItem?.unitCost?.amount);
+
+                if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(cost)) {
+                    return null;
+                }
+
+                return ((price - cost) / price) * 100;
+            })
+            .filter(margin => margin !== null);
+
+        const profitMargin = margins.length
+            ? Number((margins.reduce((sum, m) => sum + m, 0) / margins.length).toFixed(1))
+            : null;
+
         const report = {
             id: Date.now(),
             found: true,
-            source: "Live Shopify Store",
-            shopifyId: product.id,
             product: product.title,
-            handle: product.handle || "",
-            vendor: product.vendor || "Not assigned",
-            productType: product.productType || "Not assigned",
+            supplier: product.vendor || "Not assigned",
+            pillar: this.detectPillar(product.title),
             status: product.status || "Unknown",
             totalInventory: Number(product.totalInventory || 0),
-            imageUrl: product.featuredImage?.url || "",
             variantCount: variants.length,
-            variants,
             minimumPrice: prices.length ? Math.min(...prices) : 0,
             maximumPrice: prices.length ? Math.max(...prices) : 0,
-            skuList: variants
-                .map(variant => variant.sku)
-                .filter(Boolean),
-            researchedAt: new Date().toISOString()
+            skuList: variants.map(v => v.sku).filter(Boolean),
+            imageUrl: product.featuredMedia?.preview?.image?.url || "",
+            profitMargin,
+            demand: "Needs Manual Review",
+            competition: "Needs Manual Review",
+            trendScore: null,
+            coachScore: null,
+            brandScore: null,
+            repeatPurchaseScore: null,
+            shippingScore: null,
+            pllScore: null,
+            recommendation: "Needs Manual Review",
+            approved: false
         };
 
         this.reports.push(report);
 
         return report;
     },
+    detectPillar(productName) {
+        const name = productName.toLowerCase();
 
+        if (
+            name.includes("protein") ||
+            name.includes("vitamin") ||
+            name.includes("creatine")
+        ) {
+            return "FUEL";
+        }
+
+        if (
+            name.includes("journal") ||
+            name.includes("sleep") ||
+            name.includes("meditation")
+        ) {
+            return "FOCUS";
+        }
+
+        return "TRAIN";
+    },
     find(id) {
         return this.reports.find(report => report.id === id);
     },
-
     getReports() {
         return this.reports;
     }
-
 };
