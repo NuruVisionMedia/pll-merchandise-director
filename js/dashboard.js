@@ -196,7 +196,7 @@ const Dashboard = {
     attachEvents() {
         document
             .getElementById("researchForm")
-            .addEventListener("submit", event => {
+            .addEventListener("submit", async event => {
                 event.preventDefault();
 
                 const product = document
@@ -204,40 +204,87 @@ const Dashboard = {
                     .value
                     .trim();
 
-                const report = Research.analyze(product);
+                const resultContainer =
+                    document.getElementById("researchResult");
 
-                let queueMessage =
-                    "Product requires additional research.";
-
-                if (
-                    report.recommendation === "APPROVE" ||
-                    report.recommendation === "STRONG CANDIDATE"
-                ) {
-                    Queue.add(report);
-
-                    queueMessage =
-                        "Automatically sent to the Merchandise Director queue.";
-                }
-
-                document.getElementById("researchResult").innerHTML = `
+                resultContainer.innerHTML = `
                     <div class="result-box">
-                        <strong>${report.product}</strong>
-                        <p>Pillar: ${report.pillar}</p>
-                        <p>Demand: ${report.demand}</p>
-                        <p>Competition: ${report.competition}</p>
-                        <p>Profit Margin: ${report.profitMargin}%</p>
-                        <p>Trend Score: ${report.trendScore}</p>
-                        <p>Coach Score: ${report.coachScore}</p>
-                        <p>Brand Score: ${report.brandScore}</p>
-                        <p>Shipping Score: ${report.shippingScore}</p>
-                        <p>PLL Score: ${report.pllScore}</p>
-                        <p>
-                            Recommendation:
-                            <strong>${report.recommendation}</strong>
-                        </p>
-                        <p>${queueMessage}</p>
+                        <p>Searching the live Shopify store...</p>
                     </div>
                 `;
+
+                try {
+                    const report = await Research.analyze(product);
+
+                    if (!report.found) {
+                        resultContainer.innerHTML = `
+                            <div class="result-box">
+                                <strong>Product Not Found</strong>
+                                <p>${report.message}</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    resultContainer.innerHTML = `
+                        <div class="result-box">
+                            <strong>${report.product}</strong>
+                            <p>Pillar: ${report.pillar}</p>
+                            <p>Supplier/Vendor: ${report.supplier}</p>
+                            <p>Status: ${report.status}</p>
+                            <p>Total Inventory: ${report.totalInventory}</p>
+                            <p>Variants: ${report.variantCount}</p>
+                            <p>
+                                Price Range:
+                                $${report.minimumPrice.toFixed(2)}
+                                –
+                                $${report.maximumPrice.toFixed(2)}
+                            </p>
+                            <p>
+                                Profit Margin:
+                                ${report.profitMargin !== null
+                                    ? report.profitMargin + "%"
+                                    : "N/A (cost data unavailable)"}
+                            </p>
+                            <p>Demand: ${report.demand}</p>
+                            <p>Competition: ${report.competition}</p>
+                            <p>Trend Score: ${report.trendScore ?? "N/A"}</p>
+                            <p>Coach Score: ${report.coachScore ?? "N/A"}</p>
+                            <p>Brand Score: ${report.brandScore ?? "N/A"}</p>
+                            <p>Shipping Score: ${report.shippingScore ?? "N/A"}</p>
+                            <p>PLL Score: ${report.pllScore ?? "Needs Manual Review"}</p>
+                            <p>
+                                Recommendation:
+                                <strong>${report.recommendation}</strong>
+                            </p>
+
+                            <button
+                                id="sendToQueueBtn"
+                                data-id="${report.id}"
+                            >
+                                Send to Merchandise Director Queue
+                            </button>
+                        </div>
+                    `;
+
+                    const sendBtn =
+                        document.getElementById("sendToQueueBtn");
+
+                    if (sendBtn) {
+                        sendBtn.addEventListener("click", () => {
+                            Queue.add(report);
+                            this.render();
+                        });
+                    }
+
+                } catch (error) {
+                    resultContainer.innerHTML = `
+                        <div class="result-box">
+                            <strong>Shopify Connection Error</strong>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                }
             });
 
         document
