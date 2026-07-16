@@ -46,9 +46,11 @@ const Queue = {
             product: report.product,
             supplier: report.supplier,
             pillar: report.pillar,
+            pillarReasoning: report.pillarReasoning || "",
             demand: report.demand,
             competition: report.competition,
             profitMargin: report.profitMargin,
+            averageCost: report.averageCost,
             trendScore: report.trendScore,
             coachScore: report.coachScore,
             brandScore: report.brandScore,
@@ -56,9 +58,13 @@ const Queue = {
             shippingScore: report.shippingScore,
             pllScore: report.pllScore,
             recommendation: report.recommendation,
+            contentReport: report.contentReport || null,
+            socialPost: report.socialPost || null,
+            pricingReport: report.pricingReport || null,
             status: "Pending Merchandise Director Review",
             approved: false,
             addedToProducts: false,
+            shopifyProductId: null,
             createdAt: new Date().toISOString()
         };
 
@@ -98,7 +104,7 @@ const Queue = {
         return item;
     },
 
-    addToProducts(id) {
+    addToProducts(id, shopifyProductId = null) {
         const item = this.find(id);
 
         if (!item || !item.approved || item.addedToProducts) {
@@ -117,7 +123,10 @@ const Queue = {
         });
 
         item.addedToProducts = true;
-        item.status = "Added to Merchandise Director Products";
+        item.shopifyProductId = shopifyProductId;
+        item.status = shopifyProductId
+            ? "Created in Shopify"
+            : "Added to Merchandise Director Products";
 
         this.save();
 
