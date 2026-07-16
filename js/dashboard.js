@@ -31,6 +31,7 @@ const Dashboard = {
 
                 <div class="card">
                     <h3>Product Research Agent</h3>
+                    <p>Researching a product automatically runs Pricing, Content, and Social too.</p>
 
                     <form id="researchForm">
                         <input
@@ -50,6 +51,7 @@ const Dashboard = {
 
                 <div class="card">
                     <h3>Pricing Agent</h3>
+                    <p>Manual pricing calculator (also runs automatically during research).</p>
 
                     <form id="pricingForm">
                         <input
@@ -81,6 +83,7 @@ const Dashboard = {
 
                 <div class="card">
                     <h3>Content Creator</h3>
+                    <p>Manual content generator (also runs automatically during research).</p>
 
                     <form id="contentForm">
                         <input
@@ -100,6 +103,7 @@ const Dashboard = {
 
                 <div class="card">
                     <h3>Social Media Agent</h3>
+                    <p>Manual social generator (also runs automatically during research).</p>
 
                     <form id="socialForm">
                         <input
@@ -128,12 +132,17 @@ const Dashboard = {
                                         <div>
                                             <strong>${item.product}</strong>
                                             <span>Pillar: ${item.pillar}</span>
-                                            <span>PLL Score: ${item.pllScore}</span>
+                                            <span>PLL Score: ${item.pllScore ?? "Needs Manual Review"}</span>
                                             <span>
                                                 Recommendation:
                                                 ${item.recommendation}
                                             </span>
                                             <span>Status: ${item.status}</span>
+                                            ${
+                                                item.shopifyProductId
+                                                    ? `<span>Shopify ID: ${item.shopifyProductId}</span>`
+                                                    : ""
+                                            }
                                         </div>
 
                                         <div class="queue-actions">
@@ -193,6 +202,52 @@ const Dashboard = {
         this.attachEvents();
     },
 
+    renderContentHtml(report) {
+        return `
+            <h4>${report.headline}</h4>
+            <p>${report.shortDescription}</p>
+            <p>${report.longDescription}</p>
+
+            <h4>Benefits</h4>
+            <ul>
+                ${report.bullets.map(item => `<li>${item}</li>`).join("")}
+            </ul>
+
+            <p><strong>Call to Action:</strong> ${report.callToAction}</p>
+            <p><strong>SEO Title:</strong> ${report.seoTitle}</p>
+            <p><strong>SEO Description:</strong> ${report.seoDescription}</p>
+            <p><strong>Hashtags:</strong> ${report.hashtags.join(" ")}</p>
+        `;
+    },
+
+    renderSocialHtml(post) {
+        return `
+            <h4>Instagram</h4>
+            <p>${post.instagram.replace(/\n/g, "<br>")}</p>
+
+            <h4>Facebook</h4>
+            <p>${post.facebook.replace(/\n/g, "<br>")}</p>
+
+            <h4>X</h4>
+            <p>${post.x.replace(/\n/g, "<br>")}</p>
+
+            <h4>TikTok</h4>
+            <p>${post.tiktok.replace(/\n/g, "<br>")}</p>
+
+            <h4>YouTube</h4>
+            <p>${post.youtube.replace(/\n/g, "<br>")}</p>
+        `;
+    },
+
+    renderPricingHtml(report) {
+        return `
+            <p>Recommended Price: $${report.psychologicalPrice}</p>
+            <p>Estimated Profit: $${report.profit}</p>
+            <p>ROI: ${report.roi}%</p>
+            <p>Suggested Discount: ${report.discount}%</p>
+        `;
+    },
+
     attachEvents() {
         document
             .getElementById("researchForm")
@@ -209,7 +264,7 @@ const Dashboard = {
 
                 resultContainer.innerHTML = `
                     <div class="result-box">
-                        <p>Searching the live Shopify store...</p>
+                        <p>Searching the live Shopify store and running all agents...</p>
                     </div>
                 `;
 
@@ -225,6 +280,16 @@ const Dashboard = {
                         `;
                         return;
                     }
+
+                    const contentReport = Content.generate(report.product);
+                    const socialPost = Social.generate(report.product);
+                    const pricingReport = report.averageCost !== null
+                        ? Pricing.calculate(report.averageCost, 50)
+                        : null;
+
+                    report.contentReport = contentReport;
+                    report.socialPost = socialPost;
+                    report.pricingReport = pricingReport;
 
                     resultContainer.innerHTML = `
                         <div class="result-box">
@@ -249,16 +314,29 @@ const Dashboard = {
                             </p>
                             <p>Demand: ${report.demand}</p>
                             <p>Competition: ${report.competition}</p>
-                            <p>Trend Score: ${report.trendScore ?? "N/A"}</p>
-                            <p>Coach Score: ${report.coachScore ?? "N/A"}</p>
-                            <p>Brand Score: ${report.brandScore ?? "N/A"}</p>
-                            <p>Shipping Score: ${report.shippingScore ?? "N/A"}</p>
                             <p>PLL Score: ${report.pllScore ?? "Needs Manual Review"}</p>
                             <p>
                                 Recommendation:
                                 <strong>${report.recommendation}</strong>
                             </p>
 
+                            <hr>
+                            <h4>Pricing Agent</h4>
+                            ${
+                                pricingReport
+                                    ? this.renderPricingHtml(pricingReport)
+                                    : "<p>N/A — no cost data available from Shopify for this product.</p>"
+                            }
+
+                            <hr>
+                            <h4>Content Creator</h4>
+                            ${this.renderContentHtml(contentReport)}
+
+                            <hr>
+                            <h4>Social Media Agent</h4>
+                            ${this.renderSocialHtml(socialPost)}
+
+                            <hr>
                             <button
                                 id="sendToQueueBtn"
                                 data-id="${report.id}"
@@ -305,13 +383,7 @@ const Dashboard = {
 
                 document.getElementById("pricingResult").innerHTML = `
                     <div class="result-box">
-                        <p>
-                            Recommended Price:
-                            $${report.psychologicalPrice}
-                        </p>
-                        <p>Estimated Profit: $${report.profit}</p>
-                        <p>ROI: ${report.roi}%</p>
-                        <p>Suggested Discount: ${report.discount}%</p>
+                        ${this.renderPricingHtml(report)}
                     </div>
                 `;
             });
@@ -330,37 +402,7 @@ const Dashboard = {
 
                 document.getElementById("contentResult").innerHTML = `
                     <div class="result-box">
-                        <h4>${report.headline}</h4>
-                        <p>${report.shortDescription}</p>
-                        <p>${report.longDescription}</p>
-
-                        <h4>Benefits</h4>
-
-                        <ul>
-                            ${report.bullets
-                                .map(item => `<li>${item}</li>`)
-                                .join("")}
-                        </ul>
-
-                        <p>
-                            <strong>Call to Action:</strong>
-                            ${report.callToAction}
-                        </p>
-
-                        <p>
-                            <strong>SEO Title:</strong>
-                            ${report.seoTitle}
-                        </p>
-
-                        <p>
-                            <strong>SEO Description:</strong>
-                            ${report.seoDescription}
-                        </p>
-
-                        <p>
-                            <strong>Hashtags:</strong>
-                            ${report.hashtags.join(" ")}
-                        </p>
+                        ${this.renderContentHtml(report)}
                     </div>
                 `;
             });
@@ -379,20 +421,7 @@ const Dashboard = {
 
                 document.getElementById("socialResult").innerHTML = `
                     <div class="result-box">
-                        <h4>Instagram</h4>
-                        <p>${post.instagram.replace(/\n/g, "<br>")}</p>
-
-                        <h4>Facebook</h4>
-                        <p>${post.facebook.replace(/\n/g, "<br>")}</p>
-
-                        <h4>X</h4>
-                        <p>${post.x.replace(/\n/g, "<br>")}</p>
-
-                        <h4>TikTok</h4>
-                        <p>${post.tiktok.replace(/\n/g, "<br>")}</p>
-
-                        <h4>YouTube</h4>
-                        <p>${post.youtube.replace(/\n/g, "<br>")}</p>
+                        ${this.renderSocialHtml(post)}
                     </div>
                 `;
             });
@@ -418,9 +447,51 @@ const Dashboard = {
         document
             .querySelectorAll(".addQueueProduct")
             .forEach(button => {
-                button.addEventListener("click", () => {
-                    Queue.addToProducts(Number(button.dataset.id));
-                    this.render();
+                button.addEventListener("click", async () => {
+                    const id = Number(button.dataset.id);
+                    const item = Queue.find(id);
+
+                    if (!item) {
+                        return;
+                    }
+
+                    button.disabled = true;
+                    button.textContent = "Creating in Shopify...";
+
+                    try {
+                        const response = await fetch("/api/create-product", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                title: item.product,
+                                pillar: item.pillar,
+                                descriptionHtml: item.contentReport?.longDescription || "",
+                                seoTitle: item.contentReport?.seoTitle || item.product,
+                                seoDescription: item.contentReport?.seoDescription || "",
+                                price: item.pricingReport?.psychologicalPrice || null
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (!data.success) {
+                            alert(
+                                "Shopify product creation failed: " +
+                                (data.message || "Unknown error")
+                            );
+                            button.disabled = false;
+                            button.textContent = "Add to Products";
+                            return;
+                        }
+
+                        Queue.addToProducts(id, data.product.id);
+                        this.render();
+
+                    } catch (error) {
+                        alert("Shopify product creation failed: " + error.message);
+                        button.disabled = false;
+                        button.textContent = "Add to Products";
+                    }
                 });
             });
 
