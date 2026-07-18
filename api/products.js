@@ -91,7 +91,7 @@ export default async function handler(request, response) {
 
     const query = `
         query GetProducts {
-            products(first: 50) {
+            products(first: 100) {
                 nodes {
                     id
                     title
@@ -101,6 +101,11 @@ export default async function handler(request, response) {
                     productType
                     descriptionHtml
                     totalInventory
+
+                    seo {
+                        title
+                        description
+                    }
 
                     featuredMedia {
                         preview {
@@ -118,6 +123,7 @@ export default async function handler(request, response) {
                             sku
                             price
                             inventoryQuantity
+
                             inventoryItem {
                                 unitCost {
                                     amount
