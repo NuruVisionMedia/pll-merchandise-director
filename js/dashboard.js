@@ -54,6 +54,11 @@ const Dashboard = {
                     <span>Recommendation: ${item.recommendation}</span>
                     <span>Status: ${item.status}</span>
                     ${
+                        item.shopifyId
+                            ? `<span>Existing Shopify Product (will UPDATE, not duplicate)</span>`
+                            : `<span>New Product (will CREATE in Shopify)</span>`
+                    }
+                    ${
                         item.shopifyProductId
                             ? `<span>Shopify ID: ${item.shopifyProductId}</span>`
                             : ""
@@ -355,6 +360,7 @@ const Dashboard = {
                             <option value="Approved by Merchandise Director" ${this.queueFilters.status === "Approved by Merchandise Director" ? "selected" : ""}>Approved</option>
                             <option value="Rejected by Merchandise Director" ${this.queueFilters.status === "Rejected by Merchandise Director" ? "selected" : ""}>Rejected</option>
                             <option value="Created in Shopify" ${this.queueFilters.status === "Created in Shopify" ? "selected" : ""}>Created in Shopify</option>
+                            <option value="Updated Existing Shopify Product" ${this.queueFilters.status === "Updated Existing Shopify Product" ? "selected" : ""}>Updated Existing Product</option>
                         </select>
                     </div>
 
@@ -467,28 +473,47 @@ const Dashboard = {
                         return;
                     }
 
+                    const isUpdate = Boolean(item.shopifyId);
+
                     button.disabled = true;
-                    button.textContent = "Creating in Shopify...";
+                    button.textContent = isUpdate
+                        ? "Updating existing Shopify product..."
+                        : "Creating in Shopify...";
 
                     try {
-                        const response = await fetch("/api/create-product", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
+                        const endpoint = isUpdate
+                            ? "/api/update-product"
+                            : "/api/create-product";
+
+                        const body = isUpdate
+                            ? {
+                                productId: item.shopifyId,
+                                descriptionHtml: item.contentReport?.longDescription || "",
+                                seoTitle: item.contentReport?.seoTitle || item.product,
+                                seoDescription: item.contentReport?.seoDescription || "",
+                                variantId: item.firstVariantId,
+                                price: item.pricingReport?.psychologicalPrice || null
+                            }
+                            : {
                                 title: item.product,
                                 pillar: item.pillar,
                                 descriptionHtml: item.contentReport?.longDescription || "",
                                 seoTitle: item.contentReport?.seoTitle || item.product,
                                 seoDescription: item.contentReport?.seoDescription || "",
                                 price: item.pricingReport?.psychologicalPrice || null
-                            })
+                            };
+
+                        const response = await fetch(endpoint, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(body)
                         });
 
                         const data = await response.json();
 
                         if (!data.success) {
                             alert(
-                                "Shopify product creation failed: " +
+                                "Shopify sync failed: " +
                                 (data.message || "Unknown error")
                             );
                             button.disabled = false;
@@ -496,11 +521,15 @@ const Dashboard = {
                             return;
                         }
 
-                        Queue.addToProducts(id, data.product.id);
+                        const resultId = isUpdate
+                            ? item.shopifyId
+                            : data.product.id;
+
+                        Queue.addToProducts(id, resultId, isUpdate);
                         this.render();
 
                     } catch (error) {
-                        alert("Shopify product creation failed: " + error.message);
+                        alert("Shopify sync failed: " + error.message);
                         button.disabled = false;
                         button.textContent = "Add to Products";
                     }
@@ -761,6 +790,7 @@ const Dashboard = {
                                 Recommendation:
                                 <strong>${report.recommendation}</strong>
                             </p>
+                            <p><em>This product already exists in Shopify — approving will UPDATE it, not create a duplicate.</em></p>
 
                             <hr>
                             <h4>Pricing Agent</h4>
