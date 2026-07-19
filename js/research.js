@@ -73,6 +73,8 @@ const Research = {
         const report = {
             id: Date.now(),
             found: true,
+            shopifyId: product.id,
+            firstVariantId: variants[0]?.id || null,
             product: product.title,
             supplier: product.vendor || "Not assigned",
             pillar: pillarResult.pillar,
