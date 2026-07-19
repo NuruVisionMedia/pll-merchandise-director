@@ -43,6 +43,8 @@ const Queue = {
 
         const item = {
             id: Date.now(),
+            shopifyId: report.shopifyId || null,
+            firstVariantId: report.firstVariantId || null,
             product: report.product,
             supplier: report.supplier,
             pillar: report.pillar,
@@ -104,7 +106,7 @@ const Queue = {
         return item;
     },
 
-    addToProducts(id, shopifyProductId = null) {
+    addToProducts(id, shopifyProductId = null, wasUpdate = false) {
         const item = this.find(id);
 
         if (!item || !item.approved || item.addedToProducts) {
@@ -124,9 +126,11 @@ const Queue = {
 
         item.addedToProducts = true;
         item.shopifyProductId = shopifyProductId;
-        item.status = shopifyProductId
-            ? "Created in Shopify"
-            : "Added to Merchandise Director Products";
+        item.status = wasUpdate
+            ? "Updated Existing Shopify Product"
+            : (shopifyProductId
+                ? "Created in Shopify"
+                : "Added to Merchandise Director Products");
 
         this.save();
 
